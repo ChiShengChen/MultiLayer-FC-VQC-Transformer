@@ -1442,3 +1442,356 @@ class FullyConnectedVQCs_52t18t6t1(nn.Module):
 
         return H * self.multiplier
 
+# ============================================================
+# Hybrid Quantum Transformer (Route A)
+# ============================================================
+
+class QuantumTransformerVQC(nn.Module):
+    """
+    Hybrid Quantum Transformer using VQC blocks as Q/K/V projections and FFN.
+
+    Maps the FC-VQC architecture to a transformer:
+    - Tokens : 5 blocks of 3 features each (Q3 VQCs)
+    - Q/K/V : Independent VQC per token ("first" connectivity)
+    - Attn  : Classical softmax(Q·K^T / sqrt(d)) → weighted V
+    - FFN   : Independent VQC per token (position-wise)
+    - Skip  : Residual connection + LayerNorm after each sub-layer
+
+    Architecture:
+        Input(13) → pad to 15 → 5 tokens × dim 3
+        → [Transformer Layer × N]:
+              Self-Attention(Q/K/V via Q3 VQCs, classical softmax)
+              + Residual + LayerNorm
+              FFN(Q3 VQCs, position-wise)
+              + Residual + LayerNorm
+        → Reduce: Q3 15→5 (3to1)
+        → Final : Q5 5→1
+        → × (π − ε)
+    """
+
+    def __init__(self, layers, depth):
+        super().__init__()
+        self.layers = layers
+        self.vqc_depth = depth
+        eps = np.finfo(np.float32).eps
+        self.multiplier = np.pi - eps
+
+        Q3_qubits = 3
+        n_tokens = 5
+        shots = None
+
+        # Quantum devices
+        self.dev_Q3 = qml.device("default.qubit", wires=3, shots=shots)
+        self.dev_Q5 = qml.device("default.qubit", wires=5, shots=shots)
+
+        # QNodes (stateless — params passed as args)
+        self.qnode_3to3 = qml.QNode(q_NtoN_Strong_function, self.dev_Q3, interface="torch")
+        self.qnode_3to1 = qml.QNode(q_Nto1_Strong_function, self.dev_Q3, interface="torch")
+        self.qnode_5to1 = qml.QNode(q_Nto1_Strong_function, self.dev_Q5, interface="torch")
+
+        # === Per Transformer Layer: Q, K, V projections + FFN ===
+        self.theta_Q = nn.ModuleList([
+            nn.ParameterList([
+                nn.Parameter(0.01 * torch.randn(depth, Q3_qubits, 3))
+                for _ in range(n_tokens)])
+            for _ in range(layers)])
+
+        self.theta_K = nn.ModuleList([
+            nn.ParameterList([
+                nn.Parameter(0.01 * torch.randn(depth, Q3_qubits, 3))
+                for _ in range(n_tokens)])
+            for _ in range(layers)])
+
+        self.theta_V = nn.ModuleList([
+            nn.ParameterList([
+                nn.Parameter(0.01 * torch.randn(depth, Q3_qubits, 3))
+                for _ in range(n_tokens)])
+            for _ in range(layers)])
+
+        self.theta_FFN = nn.ModuleList([
+            nn.ParameterList([
+                nn.Parameter(0.01 * torch.randn(depth, Q3_qubits, 3))
+                for _ in range(n_tokens)])
+            for _ in range(layers)])
+
+        # LayerNorm after attention and FFN
+        self.attn_norm = nn.ModuleList([nn.LayerNorm(n_tokens * Q3_qubits) for _ in range(layers)])
+        self.ffn_norm  = nn.ModuleList([nn.LayerNorm(n_tokens * Q3_qubits) for _ in range(layers)])
+
+        # === Readout ===
+        self.theta_reduce = nn.ParameterList([
+            nn.Parameter(0.01 * torch.randn(depth, Q3_qubits, 3))
+            for _ in range(n_tokens)])
+
+        self.theta_final = nn.Parameter(0.01 * torch.randn(depth, 5, 3))
+
+    # ----------------------------------------------------------------
+    # QNode call helpers (same pattern as existing FC-VQC models)
+    # ----------------------------------------------------------------
+    def _qcall_3to3(self, blocks, thetas):
+        """Run Q3 NtoN VQC on each block. blocks: list of (B,3), thetas: ParameterList."""
+        outs = []
+        for i in range(len(blocks)):
+            out = torch.stack(self.qnode_3to3(blocks[i], thetas[i], 3)).T.float()
+            outs.append(out)
+        return outs
+
+    def _qcall_3to1(self, blocks, thetas):
+        """Run Q3 Nto1 VQC on each block. blocks: list of (B,3), thetas: ParameterList."""
+        outs = []
+        for i in range(len(blocks)):
+            out = torch.stack(self.qnode_3to1(blocks[i], thetas[i], 3)).T.float()
+            outs.append(out)
+        return outs
+
+    # ----------------------------------------------------------------
+    # Transformer sub-layers
+    # ----------------------------------------------------------------
+    def _project(self, H, thetas):
+        """Q/K/V projection: (B, 15) → (B, 5, 3) via 5 independent Q3 VQCs."""
+        blocks = [H[:, 3*b : 3*(b+1)] for b in range(5)]
+        out_blocks = self._qcall_3to3(blocks, thetas)  # 5 × (B, 3)
+        return torch.stack(out_blocks, dim=1)           # (B, 5, 3)
+
+    def _ffn(self, H, thetas):
+        """Position-wise FFN: (B, 15) → (B, 15) via 5 independent Q3 VQCs."""
+        blocks = [H[:, 3*b : 3*(b+1)] for b in range(5)]
+        out_blocks = self._qcall_3to3(blocks, thetas)  # 5 × (B, 3)
+        return torch.cat(out_blocks, dim=1)              # (B, 15)
+
+    # ----------------------------------------------------------------
+    # Forward
+    # ----------------------------------------------------------------
+    def forward(self, x_):
+        B = x_.shape[0]
+
+        # Pad 13 → 15
+        zeros_col = torch.zeros(B, 1, device=x_.device, dtype=x_.dtype)
+        H = torch.cat([zeros_col, x_, zeros_col], dim=1)  # (B, 15)
+
+        # === Transformer Layers ===
+        for l in range(self.layers):
+            # --- Self-Attention ---
+            Q = self._project(H, self.theta_Q[l])   # (B, 5, 3)
+            K = self._project(H, self.theta_K[l])   # (B, 5, 3)
+            V = self._project(H, self.theta_V[l])   # (B, 5, 3)
+
+            # Attention: softmax(Q·K^T / √d) · V
+            scores = torch.bmm(Q, K.transpose(1, 2)) / (3.0 ** 0.5)  # (B, 5, 5)
+            attn_weights = F.softmax(scores, dim=-1)                   # (B, 5, 5)
+            attn_out = torch.bmm(attn_weights, V)                     # (B, 5, 3)
+            attn_out = attn_out.reshape(B, 15)                         # (B, 15)
+
+            H = self.attn_norm[l](H + attn_out)  # residual + norm
+
+            # --- Feed-Forward ---
+            ffn_out = self._ffn(H, self.theta_FFN[l])  # (B, 15)
+            H = self.ffn_norm[l](H + ffn_out)          # residual + norm
+
+        # === Readout ===
+        # Q3 15→5 (3to1)
+        blocks = [H[:, 3*b : 3*(b+1)] for b in range(5)]
+        reduce_outs = self._qcall_3to1(blocks, self.theta_reduce)  # 5 × (B, 1)
+        H = torch.cat(reduce_outs, dim=1)                          # (B, 5)
+
+        # Q5 5→1
+        H = torch.stack(self.qnode_5to1(H, self.theta_final, 5)).T.float()  # (B, 1)
+
+        return H * self.multiplier
+
+
+# ============================================================
+# Full Quantum Transformer (Route B) — no softmax, no LayerNorm
+# ============================================================
+
+class FullQuantumTransformerVQC(nn.Module):
+    """
+    Full Quantum Transformer — all operations are quantum circuits.
+    No classical softmax, no LayerNorm.
+
+    Quantum Attention:
+        Transpose the token matrix (5 tokens × 3 dim → 3 groups × 5 tokens)
+        → 3 Q5 VQCs with StronglyEntanglingLayers (cross-token entanglement)
+        → Transpose back (3 groups × 5 → 5 tokens × 3)
+        + Residual
+
+    Quantum FFN (FC-VQC):
+        5 Q3 VQCs with "multiple" (circular-shift) connectivity
+        + Residual
+
+    Architecture:
+        Input(13) → pad to 15 = 5 tokens × dim 3
+        → Stem: 5 Q3 VQCs (mode="first", per-token feature extraction)
+        → [Full Quantum Transformer Layer × N]:
+              Quantum Attention  (Q5, cross-token) + Residual
+              Quantum FFN        (Q3, FC-VQC "multiple") + Residual
+        → Reduce: Q3 15→5  (3to1)
+        → Final : Q5 5→1
+        → × (π − ε)
+    """
+
+    def __init__(self, layers, depth):
+        super().__init__()
+        self.layers = layers
+        self.vqc_depth = depth
+        eps = np.finfo(np.float32).eps
+        self.multiplier = np.pi - eps
+
+        Q3_qubits = 3
+        Q5_qubits = 5
+        n_tokens  = 5       # 15 features / 3 qubits
+        n_groups  = 3       # feature dim per token
+        shots = None
+
+        # Quantum devices
+        self.dev_Q3 = qml.device("default.qubit", wires=3, shots=shots)
+        self.dev_Q5 = qml.device("default.qubit", wires=5, shots=shots)
+
+        # QNodes (stateless — params passed as args)
+        self.qnode_Q3_3to3 = qml.QNode(q_NtoN_Strong_function,  self.dev_Q3, interface="torch")
+        self.qnode_Q3_3to1 = qml.QNode(q_Nto1_Strong_function,  self.dev_Q3, interface="torch")
+        self.qnode_Q5_5to5 = qml.QNode(q_NtoN_Strong_function,  self.dev_Q5, interface="torch")
+        self.qnode_Q5_5to1 = qml.QNode(q_Nto1_Strong_function,  self.dev_Q5, interface="torch")
+
+        # === Stem: 5 Q3 VQCs (mode="first") ===
+        self.theta_stem = nn.ParameterList([
+            nn.Parameter(0.01 * torch.randn(depth, Q3_qubits, 3))
+            for _ in range(n_tokens)])
+
+        # === Per Transformer Layer ===
+        # Quantum Attention: 3 Q5 VQCs (one per feature-dimension group)
+        self.theta_attn = nn.ModuleList([
+            nn.ParameterList([
+                nn.Parameter(0.01 * torch.randn(depth, Q5_qubits, 3))
+                for _ in range(n_groups)])
+            for _ in range(layers)])
+
+        # Quantum FFN: 5 Q3 VQCs ("multiple" connectivity)
+        self.theta_ffn = nn.ModuleList([
+            nn.ParameterList([
+                nn.Parameter(0.01 * torch.randn(depth, Q3_qubits, 3))
+                for _ in range(n_tokens)])
+            for _ in range(layers)])
+
+        # === Readout ===
+        self.theta_reduce = nn.ParameterList([
+            nn.Parameter(0.01 * torch.randn(depth, Q3_qubits, 3))
+            for _ in range(n_tokens)])
+
+        self.theta_final = nn.Parameter(0.01 * torch.randn(depth, 5, 3))
+
+    # ----------------------------------------------------------------
+    # QNode call helpers
+    # ----------------------------------------------------------------
+    def _qcall_Q5_5to5(self, groups, thetas):
+        """Run Q5 NtoN VQC on each group. groups: list of (B,5)."""
+        outs = []
+        for i in range(len(groups)):
+            out = torch.stack(self.qnode_Q5_5to5(groups[i], thetas[i], 5)).T.float()
+            outs.append(out)
+        return outs
+
+    def _qcall_Q3_3to3(self, blocks, thetas):
+        """Run Q3 NtoN VQC on each block. blocks: list of (B,3)."""
+        outs = []
+        for i in range(len(blocks)):
+            out = torch.stack(self.qnode_Q3_3to3(blocks[i], thetas[i], 3)).T.float()
+            outs.append(out)
+        return outs
+
+    def _qcall_Q3_3to1(self, blocks, thetas):
+        """Run Q3 Nto1 VQC on each block. blocks: list of (B,3)."""
+        outs = []
+        for i in range(len(blocks)):
+            out = torch.stack(self.qnode_Q3_3to1(blocks[i], thetas[i], 3)).T.float()
+            outs.append(out)
+        return outs
+
+    # ----------------------------------------------------------------
+    # Quantum Attention: transpose → Q5 VQCs → transpose back
+    # ----------------------------------------------------------------
+    def _quantum_attention(self, H, thetas):
+        """
+        Cross-token entanglement via transposed Q5 VQCs.
+
+        (B,15) → reshape (B,5,3) → transpose (B,3,5)
+        → 3 Q5 VQCs (each sees one feature from ALL 5 tokens)
+        → transpose back (B,5,3) → flatten (B,15)
+
+        The StronglyEntanglingLayers inside each Q5 VQC create
+        data-dependent entanglement across all 5 tokens — this IS
+        the quantum analogue of self-attention.
+        """
+        B = H.shape[0]
+        tokens     = H.reshape(B, 5, 3)              # (B, 5, 3)
+        transposed = tokens.transpose(1, 2)           # (B, 3, 5)
+
+        groups   = [transposed[:, g, :] for g in range(3)]  # 3 × (B, 5)
+        attended = self._qcall_Q5_5to5(groups, thetas)       # 3 × (B, 5)
+
+        result = torch.stack(attended, dim=1)         # (B, 3, 5)
+        result = result.transpose(1, 2)                # (B, 5, 3)
+        return result.reshape(B, 15)                   # (B, 15)
+
+    # ----------------------------------------------------------------
+    # Quantum FFN: FC-VQC with "multiple" (circular-shift) connectivity
+    # ----------------------------------------------------------------
+    def _quantum_ffn(self, H, thetas):
+        """
+        FC-VQC feed-forward with circular-shift inter-block connectivity.
+
+        Each output block[i] receives:
+          [blocks[i-1][:,2],  blocks[i][:,1],  blocks[i+1][:,0]]
+        (wrapping at boundaries)
+        """
+        blocks   = [H[:, 3*b : 3*(b+1)] for b in range(5)]
+        n_blocks = 5
+
+        next_inputs = []
+        for i in range(n_blocks):
+            if i == 0:
+                ni = torch.stack([blocks[n_blocks-1][:, 2],
+                                  blocks[0][:, 1],
+                                  blocks[1][:, 0]], dim=1)
+            elif i == n_blocks - 1:
+                ni = torch.stack([blocks[i-1][:, 2],
+                                  blocks[i][:, 1],
+                                  blocks[0][:, 0]], dim=1)
+            else:
+                ni = torch.stack([blocks[i-1][:, 2],
+                                  blocks[i][:, 1],
+                                  blocks[i+1][:, 0]], dim=1)
+            next_inputs.append(ni)
+
+        out_blocks = self._qcall_Q3_3to3(next_inputs, thetas)  # 5 × (B, 3)
+        return torch.cat(out_blocks, dim=1)                     # (B, 15)
+
+    # ----------------------------------------------------------------
+    # Forward
+    # ----------------------------------------------------------------
+    def forward(self, x_):
+        B = x_.shape[0]
+
+        # Pad 13 → 15
+        zeros_col = torch.zeros(B, 1, device=x_.device, dtype=x_.dtype)
+        H = torch.cat([zeros_col, x_, zeros_col], dim=1)  # (B, 15)
+
+        # Stem: independent Q3 VQCs (mode="first")
+        blocks    = [H[:, 3*b : 3*(b+1)] for b in range(5)]
+        stem_outs = self._qcall_Q3_3to3(blocks, self.theta_stem)  # 5 × (B, 3)
+        H = torch.cat(stem_outs, dim=1)                          # (B, 15)
+
+        # Full Quantum Transformer layers
+        for l in range(self.layers):
+            H = H + self._quantum_attention(H, self.theta_attn[l])  # + residual
+            H = H + self._quantum_ffn(H, self.theta_ffn[l])         # + residual
+
+        # Readout: Q3 15→5 (3to1)
+        blocks      = [H[:, 3*b : 3*(b+1)] for b in range(5)]
+        reduce_outs = self._qcall_Q3_3to1(blocks, self.theta_reduce)  # 5 × (B, 1)
+        H = torch.cat(reduce_outs, dim=1)                            # (B, 5)
+
+        # Final: Q5 5→1
+        H = torch.stack(self.qnode_Q5_5to1(H, self.theta_final, 5)).T.float()
+
+        return H * self.multiplier
