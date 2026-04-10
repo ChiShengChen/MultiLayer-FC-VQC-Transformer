@@ -7,6 +7,7 @@ import torch
 
 from functions import load_regression_csv, prepare_datasets, Trainer
 from models import MLPRegressor, FullyConnectedVQCs_52t18t6t1, FullyConnectedVQCs_16t4t1, FullyConnectedVQCs_16t4t1_orig, FullyConnectedVQCs_15t5t1, FullyConnectedVQCs_15t5t2, CatBoostModel, XGBoostModel
+from models_resnet import ResNetVQC_15t5t1, ResNetVQC_9t3t1
 
 # -------------------------------------------------------------------
 # Configuration
@@ -78,6 +79,8 @@ def main(vqc_depth: int, hidden_layers: int):
     # model = MLPRegressor(in_dim=n_features, layers=hidden_layers, dropout=0.0).to(device)
     # model = CatBoostModel(vqc_depth)
     # model = XGBoostModel(vqc_depth)
+    # model = ResNetVQC_15t5t1(layers=hidden_layers, depth=vqc_depth).to(device)
+    # model = ResNetVQC_9t3t1(layers=hidden_layers, depth=vqc_depth).to(device)
 
     model_name = model.__class__.__name__
     run_name = f"{model_name}_L{hidden_layers}_K{vqc_depth}"

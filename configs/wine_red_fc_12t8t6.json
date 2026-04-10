@@ -1,0 +1,23 @@
+{
+  "experiment": "WineQuality_Red",
+  "task_type": "classification",
+  "data": {
+    "csv_path": "data/wine-quality-red.csv",
+    "target_column": "quality",
+    "clip_percentile": 0.0
+  },
+  "model": {
+    "name": "FullyConnectedVQCs_12t8t6",
+    "module": "models",
+    "vqc_depth": 3,
+    "hidden_layers": 3
+  },
+  "training": {
+    "lr": 0.005,
+    "weight_decay": 0.0,
+    "use_scheduler": false,
+    "epochs": 5000,
+    "print_every": 100,
+    "eval_interval": 100
+  }
+}

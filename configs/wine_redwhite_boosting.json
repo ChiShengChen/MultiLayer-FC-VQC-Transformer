@@ -1,0 +1,36 @@
+{
+  "experiment": "WineQuality_RedandWhite",
+  "task_type": "classification",
+  "data": {
+    "csv_path": "data/wine-quality-white-and-red.csv",
+    "target_column": "quality",
+    "clip_percentile": 0
+  },
+  "models": [
+    {
+      "name": "XGBClassifier",
+      "n_estimators": 500,
+      "max_depth": 6,
+      "xgb_lr": 0.1
+    },
+    {
+      "name": "CatBoostClassifier",
+      "iterations": 500,
+      "max_depth": 6,
+      "cb_lr": 0.1
+    }
+  ],
+  "training": {
+    "lr": 0.005,
+    "weight_decay": 0.0,
+    "use_scheduler": false,
+    "epochs": 5000,
+    "print_every": 100,
+    "eval_interval": 100
+  },
+  "batch_size": {
+    "train": null,
+    "val": null,
+    "test": null
+  }
+}

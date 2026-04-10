@@ -1,0 +1,39 @@
+{
+  "experiment": "WineQuality_Red",
+  "task_type": "classification",
+  "data": {
+    "csv_path": "data/wine-quality-red.csv",
+    "target_column": "quality",
+    "clip_percentile": 0
+  },
+  "models": [
+    {
+      "name": "SVC_RBF",
+      "C": 1.0,
+      "gamma": "scale"
+    },
+    {
+      "name": "LogisticRegression",
+      "max_iter": 1000
+    },
+    {
+      "name": "MLPClassifier_ParamMatch",
+      "hidden_layers": 3,
+      "target_params": "auto",
+      "dropout": 0.0
+    }
+  ],
+  "training": {
+    "lr": 0.005,
+    "weight_decay": 0.0,
+    "use_scheduler": false,
+    "epochs": 10000,
+    "print_every": 100,
+    "eval_interval": 100
+  },
+  "batch_size": {
+    "train": null,
+    "val": null,
+    "test": null
+  }
+}
