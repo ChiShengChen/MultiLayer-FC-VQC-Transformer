@@ -159,13 +159,15 @@ class ResNetVQC_15t5t1(nn.Module):
                         ni = torch.stack([blocks[i-1][:, 2], blocks[i][:, 1], blocks[i+1][:, 0]], dim=1)
                     next_inputs.append(ni)
         elif mode == "fully":
-            # True dense mapping for 3 blocks only: each next VQC sees ALL 9 features
-            assert n_blocks == 3, "Fully-connected mode expects exactly 3 previous blocks (D=9)."
-            next_inputs = [
-                torch.stack([blocks[0][:, 0], blocks[1][:, 0], blocks[2][:, 0]], dim=1),
-                torch.stack([blocks[0][:, 1], blocks[1][:, 1], blocks[2][:, 1]], dim=1),
-                torch.stack([blocks[0][:, 2], blocks[1][:, 2], blocks[2][:, 2]], dim=1),
-            ]
+            # Generalized fully-connected: transpose-based for any n_blocks
+            if n_blocks == 1:
+                next_inputs = [blocks[0]]
+            else:
+                B = blocks[0].shape[0]
+                stacked = torch.stack(blocks, dim=1)       # (B, n_blocks, 3)
+                transposed = stacked.transpose(1, 2)        # (B, 3, n_blocks)
+                flat = transposed.reshape(B, -1)             # (B, 3*n_blocks)
+                next_inputs = [flat[:, 3*i:3*(i+1)] for i in range(n_blocks)]
    
         else:
             raise ValueError(f"Unknown mode '{mode}'. Use 'first'|'multiple'|'fully'.")         
@@ -208,7 +210,7 @@ class ResNetVQC_15t5t1(nn.Module):
 
         # Residual blocks with skip connections
         for i in range(self.layers):
-            H_res = self._quantum_layer_Q3_3to3(H, thetas_layer=self.theta_Q3_list[i+1], n_qubits=3, mode="multiple")  # (B,15)
+            H_res = self._quantum_layer_Q3_3to3(H, thetas_layer=self.theta_Q3_list[i+1], n_qubits=3, mode="fully")  # (B,15)
             H = H_res + H  # ← residual/skip connection
 
         # Reduce: Q3 15→5
@@ -314,13 +316,15 @@ class ResNetVQC_9t3t1(nn.Module):
                         ni = torch.stack([blocks[i-1][:, 2], blocks[i][:, 1], blocks[i+1][:, 0]], dim=1)
                     next_inputs.append(ni)
         elif mode == "fully":
-            # True dense mapping for 3 blocks only: each next VQC sees ALL 9 features
-            assert n_blocks == 3, "Fully-connected mode expects exactly 3 previous blocks (D=9)."
-            next_inputs = [
-                torch.stack([blocks[0][:, 0], blocks[1][:, 0], blocks[2][:, 0]], dim=1),
-                torch.stack([blocks[0][:, 1], blocks[1][:, 1], blocks[2][:, 1]], dim=1),
-                torch.stack([blocks[0][:, 2], blocks[1][:, 2], blocks[2][:, 2]], dim=1),
-            ]
+            # Generalized fully-connected: transpose-based for any n_blocks
+            if n_blocks == 1:
+                next_inputs = [blocks[0]]
+            else:
+                B = blocks[0].shape[0]
+                stacked = torch.stack(blocks, dim=1)       # (B, n_blocks, 3)
+                transposed = stacked.transpose(1, 2)        # (B, 3, n_blocks)
+                flat = transposed.reshape(B, -1)             # (B, 3*n_blocks)
+                next_inputs = [flat[:, 3*i:3*(i+1)] for i in range(n_blocks)]
    
         else:
             raise ValueError(f"Unknown mode '{mode}'. Use 'first'|'multiple'|'fully'.")         

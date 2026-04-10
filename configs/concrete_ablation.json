@@ -1,0 +1,64 @@
+{
+  "experiment": "Concrete",
+  "task_type": "regression",
+  "data": {
+    "csv_path": "data/concrete_data.csv",
+    "target_column": "concrete_compressive_strength",
+    "clip_percentile": 0.04
+  },
+  "models": [
+    {
+      "name": "QuantumTransformerVQC",
+      "module": "shared_models",
+      "vqc_depth": 3,
+      "hidden_layers": 2,
+      "use_attention": false,
+      "_comment": "FFN-only (no attention) ablation"
+    },
+    {
+      "name": "QuantumTransformerVQC",
+      "module": "shared_models",
+      "vqc_depth": 3,
+      "hidden_layers": 2,
+      "ffn_mode": "multiple",
+      "_comment": "Type 3 (circular-shift) FFN"
+    },
+    {
+      "name": "FullQuantumTransformerVQC",
+      "module": "shared_models",
+      "vqc_depth": 3,
+      "hidden_layers": 2,
+      "use_layernorm": true,
+      "_comment": "Full QT with LayerNorm"
+    },
+    {
+      "name": "FullQuantumTransformerVQC",
+      "module": "shared_models",
+      "vqc_depth": 3,
+      "hidden_layers": 2,
+      "use_attention": false,
+      "_comment": "Full QT FFN-only (no quantum attention)"
+    },
+    {
+      "name": "FullQuantumTransformerVQC",
+      "module": "shared_models",
+      "vqc_depth": 3,
+      "hidden_layers": 2,
+      "ffn_mode": "multiple",
+      "_comment": "Full QT with Type 3 FFN"
+    }
+  ],
+  "training": {
+    "lr": 0.005,
+    "weight_decay": 0.0,
+    "use_scheduler": false,
+    "epochs": 10000,
+    "print_every": 200,
+    "eval_interval": 200
+  },
+  "batch_size": {
+    "train": null,
+    "val": null,
+    "test": null
+  }
+}

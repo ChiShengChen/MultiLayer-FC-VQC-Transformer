@@ -165,7 +165,7 @@ def prepare_classification_datasets(
         shuffle=False,
     )
 
-    return train_loader, val_loader, test_loader, X.shape[1], n_classes
+    return train_loader, val_loader, test_loader, X.shape[1], n_classes, x_scaler
 
 
 # -------------------------------------------------------------------

@@ -1,0 +1,47 @@
+{
+  "experiment": "WineQuality_RedandWhite",
+  "task_type": "classification",
+  "data": {
+    "csv_path": "data/wine-quality-white-and-red.csv",
+    "target_column": "quality"
+  },
+  "models": [
+    {
+      "name": "FullyConnectedVQCs_12t8t6",
+      "module": "models",
+      "vqc_depth": 3,
+      "hidden_layers": 3
+    },
+    {
+      "name": "ResNetVQC",
+      "module": "shared_models",
+      "vqc_depth": 3,
+      "hidden_layers": 3
+    },
+    {
+      "name": "QuantumTransformerVQC",
+      "module": "shared_models",
+      "vqc_depth": 3,
+      "hidden_layers": 2
+    },
+    {
+      "name": "FullQuantumTransformerVQC",
+      "module": "shared_models",
+      "vqc_depth": 3,
+      "hidden_layers": 2
+    }
+  ],
+  "training": {
+    "lr": 0.005,
+    "weight_decay": 0.0,
+    "use_scheduler": false,
+    "epochs": 5000,
+    "print_every": 100,
+    "eval_interval": 100
+  },
+  "batch_size": {
+    "train": null,
+    "val": null,
+    "test": null
+  }
+}

@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+
+# Logs
+*.log
+
+# Tooling / caches
+.claude/
+catboost_info/
+.DS_Store
+.ipynb_checkpoints/
+
+# Outputs (large artifacts)
+outputs/

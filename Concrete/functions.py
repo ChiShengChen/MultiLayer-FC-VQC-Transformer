@@ -173,7 +173,7 @@ def prepare_datasets(
         shuffle=False,
     )
 
-    return train_loader, val_loader, test_loader, y_scaler, X.shape[1]
+    return train_loader, val_loader, test_loader, y_scaler, X.shape[1], x_scaler
 
 
 # -------------------------------------------------------------------

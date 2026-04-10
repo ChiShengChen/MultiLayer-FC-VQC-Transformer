@@ -1,0 +1,36 @@
+{
+  "experiment": "Concrete",
+  "task_type": "regression",
+  "data": {
+    "csv_path": "data/concrete_data.csv",
+    "target_column": "concrete_compressive_strength",
+    "clip_percentile": 0
+  },
+  "models": [
+    {
+      "name": "XGBRegressor",
+      "n_estimators": 500,
+      "max_depth": 6,
+      "xgb_lr": 0.1
+    },
+    {
+      "name": "CatBoostRegressor",
+      "iterations": 500,
+      "max_depth": 6,
+      "cb_lr": 0.1
+    }
+  ],
+  "training": {
+    "lr": 0.005,
+    "weight_decay": 0.0,
+    "use_scheduler": false,
+    "epochs": 5000,
+    "print_every": 100,
+    "eval_interval": 100
+  },
+  "batch_size": {
+    "train": null,
+    "val": null,
+    "test": null
+  }
+}

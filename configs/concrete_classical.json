@@ -1,0 +1,46 @@
+{
+  "experiment": "Concrete",
+  "task_type": "regression",
+  "data": {
+    "csv_path": "data/concrete_data.csv",
+    "target_column": "concrete_compressive_strength",
+    "clip_percentile": 0
+  },
+  "models": [
+    {
+      "name": "SVR_RBF",
+      "C": 1.0,
+      "gamma": "scale"
+    },
+    {
+      "name": "KernelRidge_RBF",
+      "alpha": 1.0
+    },
+    {
+      "name": "Ridge",
+      "alpha": 1.0
+    },
+    {
+      "name": "LinearRegression"
+    },
+    {
+      "name": "MLPRegressor_ParamMatch",
+      "hidden_layers": 3,
+      "target_params": "auto",
+      "dropout": 0.0
+    }
+  ],
+  "training": {
+    "lr": 0.005,
+    "weight_decay": 0.0,
+    "use_scheduler": false,
+    "epochs": 10000,
+    "print_every": 100,
+    "eval_interval": 100
+  },
+  "batch_size": {
+    "train": null,
+    "val": null,
+    "test": null
+  }
+}
