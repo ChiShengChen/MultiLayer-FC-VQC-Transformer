@@ -76,11 +76,39 @@ where `<kind>` is one of: `compare`, `ablation`, `boosting`, `classical`,
 ### Analysis utilities
 
 - [expressibility_analysis.py](expressibility_analysis.py) — expressibility
-  measurement for the VQC ansätze (see
-  [expressibility_results.png](expressibility_results.png))
+  measurement for the VQC ansätze
 - [summarize_results.py](summarize_results.py) — aggregate run metrics across
   `outputs/` into summary tables
 - [tables.tex](tables.tex) — LaTeX tables for the paper
+
+#### Expressibility analysis
+
+Computes the Sim et al. (2019) expressibility metric
+$\mathrm{Expr} = D_{\mathrm{KL}}(P_{\mathrm{VQC}}(F)\,\|\,P_{\mathrm{Haar}}(F))$,
+where $F$ is the fidelity between pairs of random output states. Lower KL
+means the ansatz covers state space more uniformly (closer to Haar-random),
+which is the standard proxy for VQC expressive power.
+
+```bash
+python expressibility_analysis.py --n_samples 10000
+```
+
+Result on 3 qubits with 10,000 samples (`StronglyEntanglingLayers` ansatz vs.
+random linear projection baseline):
+
+| Model        | KL Divergence |
+|--------------|--------------:|
+| VQC depth=1  |      0.202078 |
+| VQC depth=2  |      0.004809 |
+| VQC depth=3  |      0.002656 |
+| VQC depth=4  |      0.002650 |
+| VQC depth=5  |      0.002730 |
+| Linear proj. |      1.909837 |
+
+Expressibility saturates around **depth ≈ 3** — additional layers give
+diminishing returns, while a classical linear projection of equivalent width
+is roughly **three orders of magnitude less expressive**. Plot:
+[expressibility_results.png](expressibility_results.png).
 
 ## Project layout
 
