@@ -1,0 +1,23 @@
+% TODO: Draft experimental setup
+% \subsection{Datasets}
+%   - Boston Housing (regression, 506 samples, 13 features, target: MEDV)
+%   - CA Housing (regression, 20640 samples, 8 features, target: MedHouseVal)
+%   - Concrete (regression, 1030 samples, 8 features, target: compressive strength)
+%   - Wine Quality Red (classification, 1599 samples, 11 features)
+%   - Wine Quality Red+White (classification, 6497 samples, 11 features)
+%
+% \subsection{Baselines}
+%   - Classical: XGBoost, CatBoost, LightGBM, Random Forest, SVR/SVC, Linear/Ridge/KRR, LogReg
+%   - Parameter-matched MLP
+%
+% \subsection{Training Details}
+%   - Optimizer: Adam, lr=0.005
+%   - Epochs: 10,000
+%   - Best-model checkpointing by validation loss
+%   - Gradient clipping (max_norm=1.0)
+%   - Train/val/test split ratios
+%   - Standardization / scaling
+%
+% \subsection{Evaluation Metrics}
+%   - Regression: R², RMSE, MAE
+%   - Classification: Accuracy, macro-F1

@@ -1,0 +1,82 @@
+% =================================================================
+% Multi-Layer Fully-Connected Variational Quantum Circuits
+% with Residual and Transformer Architectures
+% =================================================================
+\documentclass[twocolumn,prl,amsmath,amssymb,superscriptaddress]{revtex4-2}
+% Alternative: \documentclass[conference]{IEEEtran}
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{multirow}
+\usepackage{subcaption}
+
+% Shorthand
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\KL}{D_{\mathrm{KL}}}
+\newcommand{\QT}{\text{QT}}
+\newcommand{\FQT}{\text{FQT}}
+
+\begin{document}
+
+\title{Multi-Layer Fully-Connected Variational Quantum Circuits\\
+with Residual and Transformer Architectures}
+
+\author{Chi-Sheng Chen}
+% \affiliation{...}
+
+\date{\today}
+
+\begin{abstract}
+% TODO: Write abstract after experiments are complete.
+\end{abstract}
+
+\maketitle
+
+% =================================================================
+\section{Introduction}
+\label{sec:intro}
+\input{sections/introduction}
+
+% =================================================================
+\section{Related Work}
+\label{sec:related}
+\input{sections/related_work}
+
+% =================================================================
+\section{Methods}
+\label{sec:methods}
+\input{sections/methods}
+
+% =================================================================
+\section{Experimental Setup}
+\label{sec:setup}
+\input{sections/experimental_setup}
+
+% =================================================================
+\section{Results}
+\label{sec:results}
+\input{sections/results}
+
+% =================================================================
+\section{Discussion}
+\label{sec:discussion}
+\input{sections/discussion}
+
+% =================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+\input{sections/conclusion}
+
+% =================================================================
+\appendix
+\section{Expressibility Analysis}
+\label{app:expressibility}
+\input{sections/appendix_expressibility}
+
+% =================================================================
+\bibliography{references}
+
+\end{document}

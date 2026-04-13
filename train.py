@@ -324,6 +324,7 @@ def _train_regression(model, data, device, tc, model_dir, run_name):
             optimizer.zero_grad()
             loss = criterion(model(xb), yb)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             grads = [p.grad.view(-1) for p in model.parameters() if p.grad is not None]
             grad_vars.append(torch.var(torch.cat(grads)).item() if grads else 0.0)
             optimizer.step()
@@ -331,6 +332,11 @@ def _train_regression(model, data, device, tc, model_dir, run_name):
 
         train_loss /= len(data["train_loader"].dataset)
         avg_gv = float(np.mean(grad_vars)) if grad_vars else 0.0
+
+        # ── NaN guard: stop early and fall back to best checkpoint ──
+        if math.isnan(train_loss):
+            print(f"  [!] NaN detected at epoch {epoch}, stopping early.")
+            break
 
         # ── validation ──
         model.eval()
@@ -340,6 +346,10 @@ def _train_regression(model, data, device, tc, model_dir, run_name):
                 xb, yb = xb.to(device), yb.to(device)
                 val_loss += criterion(model(xb), yb).item() * xb.size(0)
         val_loss /= len(data["val_loader"].dataset)
+
+        if math.isnan(val_loss):
+            print(f"  [!] NaN in val loss at epoch {epoch}, stopping early.")
+            break
 
         if scheduler is not None:
             scheduler.step(val_loss)
@@ -420,6 +430,7 @@ def _train_classification(model, data, device, tc, model_dir, run_name):
             logits = model(xb)
             loss = criterion(logits, yb)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             grads = [p.grad.view(-1) for p in model.parameters() if p.grad is not None]
             grad_vars.append(torch.var(torch.cat(grads)).item() if grads else 0.0)
             optimizer.step()
@@ -430,6 +441,11 @@ def _train_classification(model, data, device, tc, model_dir, run_name):
         train_loss /= total
         train_acc = correct / total
         avg_gv = float(np.mean(grad_vars)) if grad_vars else 0.0
+
+        # ── NaN guard: stop early and fall back to best checkpoint ──
+        if math.isnan(train_loss):
+            print(f"  [!] NaN detected at epoch {epoch}, stopping early.")
+            break
 
         # ── validation ──
         model.eval()
@@ -445,6 +461,10 @@ def _train_classification(model, data, device, tc, model_dir, run_name):
                 val_total += xb.size(0)
         val_loss /= val_total
         val_acc = val_correct / val_total
+
+        if math.isnan(val_loss):
+            print(f"  [!] NaN in val loss at epoch {epoch}, stopping early.")
+            break
 
         if scheduler is not None:
             scheduler.step(val_loss)

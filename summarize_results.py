@@ -624,8 +624,8 @@ def build_multihead_table(merged):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--out", type=str, default="tables.tex",
-                        help="Output .tex file (default: tables.tex)")
+    parser.add_argument("--out", type=str, default="paper/tables.tex",
+                        help="Output .tex file (default: paper/tables.tex)")
     parser.add_argument("--print", action="store_true",
                         help="Also print tables to stdout")
     args = parser.parse_args()
