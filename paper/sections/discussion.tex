@@ -1,8 +1,77 @@
-% TODO: Draft discussion
-% Key points to cover:
-% - FC-VQC vs ResNet-VQC vs Transformer-VQC trade-offs
-% - When do quantum models beat classical baselines?
-% - Parameter efficiency of quantum models
-% - Expressibility saturation at depth ~3
-% - Noise robustness implications for near-term hardware
-% - Limitations: simulation only, small qubit count, dataset scale
+% Discussion — framed around practical architectural guidance
+
+\subsection{When Are VQCs Competitive?}
+
+Our results paint a nuanced picture.  On regression tasks with moderate
+dimensionality, FC-VQCs can match or exceed strong classical baselines
+\emph{while using orders of magnitude fewer parameters}.  This parameter
+efficiency is the primary practical advantage of VQCs: on NISQ devices with
+limited qubit counts, a 720-parameter FC-VQC is far more deployable than a
+13{,}000-parameter MLP.
+
+However, on classification tasks and larger datasets (CA Housing, $n{=}20{,}640$),
+gradient-boosted trees remain superior.  This aligns with prior empirical
+findings that tree ensembles dominate tabular classification benchmarks, and
+suggests that the current advantage of VQCs is concentrated in
+\emph{low-parameter regression} settings.
+
+\subsection{The Role of Quantum Attention}
+
+Perhaps our most surprising finding is that quantum self-attention does not
+reliably improve performance.  The ablation in Table~\ref{tab:ablation}
+shows that FQT \emph{without} attention achieves the highest $R^2$ on Boston
+Housing ($0.894$).  We hypothesize two explanations:
+
+\begin{enumerate}
+  \item \textbf{Data scale:} Self-attention excels at capturing long-range
+    dependencies in sequences.  Tabular datasets with ${\leq}$13 features
+    may simply lack the structure that attention is designed to exploit.
+  \item \textbf{Optimization difficulty:} The quantum attention mechanism
+    introduces additional entangling layers whose gradients may interfere
+    with the main VQC parameters, effectively making optimization harder
+    without providing representational benefit.
+\end{enumerate}
+
+This is a valuable \emph{negative result}: practitioners should not default
+to transformer-style VQCs for tabular tasks.  Simpler FC-VQC or ResNet-VQC
+architectures are more parameter-efficient and equally or more accurate.
+
+\subsection{Expressibility and Depth Selection}
+
+The expressibility analysis (Appendix~\ref{app:expressibility}) shows that
+circuit expressibility saturates at depth~${\approx}\,3$, with KL divergence
+dropping from $0.20$ (depth~1) to $0.003$ (depth~3) and plateauing
+thereafter.  This has a direct practical implication: \textbf{there is no
+benefit to using VQC depths beyond 3} for the \texttt{StronglyEntanglingLayers}
+ansatz on 3-qubit circuits.  Deeper circuits add parameters and training
+time without accessing additional regions of Hilbert space.
+
+This finding is consistent with the parameter efficiency of FC-VQCs: even
+with shallow individual blocks, the multi-layer fully-connected topology
+provides sufficient expressiveness through inter-block connectivity rather
+than intra-block depth.
+
+\subsection{Practical Architectural Recommendations}
+
+Based on our findings, we offer the following guidance for practitioners:
+
+\begin{itemize}
+  \item \textbf{Default choice:} FC-VQC with depth~3 blocks.  Best
+    parameter efficiency, competitive accuracy, simplest to train.
+  \item \textbf{When you need robustness:} ResNet-VQC.  Skip connections
+    stabilize training with minimal parameter overhead.
+  \item \textbf{Avoid for tabular data:} Multi-head quantum attention.
+    The parameter cost is not justified by accuracy gains at this scale.
+  \item \textbf{If using FQT:} Add LayerNorm, especially for classification.
+\end{itemize}
+
+\subsection{Limitations}
+
+Our study has several limitations.  All experiments use quantum circuit
+simulation; behavior on real hardware with decoherence and gate errors may
+differ.  The datasets are small to moderate ($n \leq 20{,}640$) with low
+feature dimensionality (${\leq}13$).  Larger, higher-dimensional datasets
+may favor different architectures.  Finally, our VQCs use at most 3 qubits
+per block; scaling to larger qubit counts could change the relative merits
+of the architectures.
+% TODO: Add noise robustness discussion after experiments.

@@ -1,23 +1,55 @@
-% TODO: Draft experimental setup
-% \subsection{Datasets}
-%   - Boston Housing (regression, 506 samples, 13 features, target: MEDV)
-%   - CA Housing (regression, 20640 samples, 8 features, target: MedHouseVal)
-%   - Concrete (regression, 1030 samples, 8 features, target: compressive strength)
-%   - Wine Quality Red (classification, 1599 samples, 11 features)
-%   - Wine Quality Red+White (classification, 6497 samples, 11 features)
-%
-% \subsection{Baselines}
-%   - Classical: XGBoost, CatBoost, LightGBM, Random Forest, SVR/SVC, Linear/Ridge/KRR, LogReg
-%   - Parameter-matched MLP
-%
-% \subsection{Training Details}
-%   - Optimizer: Adam, lr=0.005
-%   - Epochs: 10,000
-%   - Best-model checkpointing by validation loss
-%   - Gradient clipping (max_norm=1.0)
-%   - Train/val/test split ratios
-%   - Standardization / scaling
-%
-% \subsection{Evaluation Metrics}
-%   - Regression: R², RMSE, MAE
-%   - Classification: Accuracy, macro-F1
+% Experimental Setup
+
+\subsection{Datasets}
+
+We evaluate on five tabular benchmarks spanning regression and classification:
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{llrrr}
+\toprule
+Dataset & Task & $n$ & Features & Target \\
+\midrule
+Boston Housing & regression & 506 & 13 & MEDV \\
+CA Housing & regression & 20{,}640 & 8 & MedHouseVal \\
+Concrete & regression & 1{,}030 & 8 & strength \\
+Wine (Red) & classification & 1{,}599 & 11 & quality \\
+Wine (R+W) & classification & 6{,}497 & 12 & quality \\
+\bottomrule
+\end{tabular}
+\caption{Dataset summary.}
+\label{tab:datasets}
+\end{table}
+
+Features are standardized to zero mean and unit variance.  Regression targets
+are also standardized; predictions are inverse-transformed for evaluation.
+The top and bottom 4\% of regression targets are clipped to reduce outlier
+sensitivity.  Data is split into 70\% train / 15\% validation / 15\% test
+with a fixed random seed for reproducibility.
+
+\subsection{Baselines}
+
+\textbf{Classical ML:} Ridge regression, kernel ridge regression (RBF),
+SVR/SVC (RBF), linear/logistic regression, XGBoost, CatBoost.  Boosting
+methods use default hyperparameters.
+
+\textbf{Parameter-matched MLP:} A classical MLP whose hidden layer sizes
+are chosen so that the total parameter count matches the median quantum
+model (${\sim}$200--220 parameters).  This controls for the possibility
+that quantum models benefit simply from having more parameters than a
+trivially small network.
+
+\subsection{Training Protocol}
+
+All quantum and MLP models are trained with Adam (lr$\,{=}\,0.005$, no
+weight decay) for 10{,}000 epochs with full-batch gradient descent.
+Best-model checkpointing selects the epoch with lowest validation loss.
+Gradient norms are clipped at 1.0 to prevent divergence.
+
+\subsection{Evaluation Metrics}
+
+Regression: $R^2$ (coefficient of determination), RMSE, MAE.
+Classification: accuracy, macro-averaged F1 score.
+All metrics are reported on the held-out test set using the best-validation
+checkpoint.

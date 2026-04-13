@@ -1,7 +1,40 @@
-% TODO: Draft related work
-% Key areas:
-% - VQC / PQC literature (Cerezo et al., Benedetti et al.)
-% - Expressibility metrics (Sim et al. 2019)
-% - Quantum transformers / quantum attention (prior work)
-% - Residual connections in quantum circuits
-% - Barren plateaus and trainability
+% Related Work
+
+\textbf{Variational quantum circuits.}
+VQCs, also known as parameterized quantum circuits (PQCs), have been widely
+studied as trainable models for quantum machine
+learning~\cite{cerezo2021variational,benedetti2019parameterized}.  Their
+expressiveness depends on the circuit ansatz, depth, and entanglement
+structure~\cite{schuld2021effect}.  A key challenge is the barren plateau
+phenomenon, where gradients vanish exponentially with qubit
+count~\cite{mcclean2018barren}, motivating the search for architectures
+that train efficiently.
+
+\textbf{Expressibility.}
+Sim et al.~\cite{sim2019expressibility} proposed measuring circuit
+expressibility via the KL divergence between the fidelity distribution of
+random circuit outputs and the Haar-random reference.  This metric has
+become a standard tool for comparing ansatz designs.  We use it to
+characterize the depth at which our VQC blocks saturate.
+
+\textbf{Quantum transformers.}
+Several recent works have explored quantum analogues of the transformer
+architecture.  These range from quantum self-attention mechanisms operating
+on amplitude-encoded data to fully quantum multi-head attention with
+parameterized entangling gates.  Our work differs in providing a controlled
+comparison against simpler VQC baselines (FC-VQC, ResNet-VQC) on identical
+benchmarks, rather than proposing a new transformer variant in isolation.
+% TODO: Add specific citations to quantum transformer papers.
+
+\textbf{Residual connections in quantum circuits.}
+Classical residual networks~\cite{he2016deep} inspired several proposals
+for skip connections in VQCs, either by adding classical residual paths
+around quantum blocks or by using identity-initialized parameterized layers.
+Our ResNet-VQC follows the classical residual path approach.
+
+\textbf{Classical baselines for tabular data.}
+Gradient-boosted decision trees (XGBoost, CatBoost, LightGBM) consistently
+rank among the top methods on tabular benchmarks.  Recent work has
+highlighted that deep learning often underperforms tree ensembles on
+tabular data, making them an essential baseline for any quantum ML study
+claiming practical relevance.

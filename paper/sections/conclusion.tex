@@ -1,4 +1,27 @@
-% TODO: Draft conclusion
-% - Summary of contributions
-% - Key findings
-% - Future work: real hardware, larger qubit counts, NLP/vision tasks
+We presented a systematic comparison of four variational quantum circuit
+architectures---fully-connected (FC-VQC), residual (ResNet-VQC), hybrid
+quantum transformer (QT), and fully quantum transformer (FQT)---on five
+tabular benchmarks.
+
+Our central finding is that \textbf{simpler is better}: multi-layer FC-VQCs
+achieve the strongest accuracy-to-parameter ratio, matching gradient-boosted
+trees on regression tasks with ${\sim}$700 parameters.  Quantum
+self-attention, despite its conceptual appeal, does not consistently improve
+performance on small tabular data and can even hurt it.  Expressibility
+analysis confirms that shallow circuits (depth~${\approx}\,3$) already
+saturate the accessible Hilbert space, explaining why deep or complex
+architectures provide diminishing returns.
+
+% TODO: Add noise robustness conclusion after experiments.
+
+These results provide actionable guidance for the quantum ML community:
+FC-VQCs should be the default architecture for tabular tasks on near-term
+hardware, with ResNet-VQC as a robust alternative.  Transformer-style VQCs
+may find their niche on structured, sequential, or high-dimensional data
+where attention mechanisms have proven beneficial in the classical setting,
+but this remains a direction for future work.
+
+Future directions include validation on real quantum hardware, scaling to
+larger qubit counts and higher-dimensional datasets, and exploring quantum
+attention on sequential tasks (e.g.\ time-series forecasting) where the
+inductive bias of self-attention may be better matched to the data structure.

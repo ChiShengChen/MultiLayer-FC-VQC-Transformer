@@ -1,6 +1,6 @@
 % =================================================================
-% Multi-Layer Fully-Connected Variational Quantum Circuits
-% with Residual and Transformer Architectures
+% Parameter-Efficient Variational Quantum Circuits:
+% A Systematic Comparison of FC, Residual, and Transformer Architectures
 % =================================================================
 \documentclass[twocolumn,prl,amsmath,amssymb,superscriptaddress]{revtex4-2}
 % Alternative: \documentclass[conference]{IEEEtran}
@@ -21,8 +21,9 @@
 
 \begin{document}
 
-\title{Multi-Layer Fully-Connected Variational Quantum Circuits\\
-with Residual and Transformer Architectures}
+\title{Parameter-Efficient Variational Quantum Circuits:\\
+A Systematic Comparison of Fully-Connected, Residual,\\
+and Transformer Architectures}
 
 \author{Chi-Sheng Chen}
 % \affiliation{...}
@@ -30,7 +31,28 @@ with Residual and Transformer Architectures}
 \date{\today}
 
 \begin{abstract}
-% TODO: Write abstract after experiments are complete.
+Variational quantum circuits (VQCs) are a leading approach to quantum machine
+learning on near-term devices, yet it remains unclear which circuit
+architecture yields the best accuracy--parameter trade-off on classical
+tabular data.  We present a systematic empirical comparison of four VQC
+families---multi-layer fully-connected (FC-VQC), residual (ResNet-VQC),
+hybrid quantum--classical transformer (QT), and fully quantum transformer
+(FQT)---across five regression and classification benchmarks.
+Our key findings are:
+\textbf{(i)}~FC-VQCs achieve competitive or superior regression accuracy to
+gradient-boosted trees with \emph{orders-of-magnitude fewer parameters}
+(e.g.\ $R^2{=}0.889$ on Boston Housing with only 720 parameters);
+\textbf{(ii)}~quantum self-attention provides no consistent benefit on
+small-scale tabular data---ablations show that removing attention can
+\emph{improve} performance;
+\textbf{(iii)}~expressibility saturates at circuit depth~${\approx}\,3$,
+explaining why shallow VQCs already cover the Hilbert space effectively;
+\textbf{(iv)}~LayerNorm on the fully quantum transformer improves
+classification accuracy, suggesting normalization is important when all
+operations are quantum.
+% TODO: Add noise-robustness finding after experiments complete.
+These results provide practical architectural guidance for deploying VQCs on
+near-term quantum hardware.
 \end{abstract}
 
 \maketitle

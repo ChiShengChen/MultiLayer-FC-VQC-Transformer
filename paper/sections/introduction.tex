@@ -1,7 +1,60 @@
-% TODO: Draft introduction
-% Key points to cover:
-% - VQCs as parameterized quantum circuits for ML
-% - Limitation of shallow / single-layer VQCs
-% - Multi-layer fully-connected VQC idea
-% - Motivation for borrowing classical architectures (ResNet, Transformer)
-% - Contributions list
+% Introduction — repositioned as systematic empirical comparison
+
+Variational quantum circuits (VQCs) have emerged as one of the most promising
+paradigms for quantum machine learning on near-term intermediate-scale quantum
+(NISQ) devices~\cite{cerezo2021variational,benedetti2019parameterized}.
+By parameterizing quantum gates and optimizing them via classical gradient
+methods, VQCs combine the expressiveness of quantum Hilbert space with the
+practicality of hybrid quantum--classical training loops.
+
+Despite growing interest, the design space of VQC architectures remains
+poorly understood.  Classical deep learning has benefited enormously from
+systematic architectural comparisons---fully-connected networks versus
+convolutional networks versus transformers---which yielded clear guidelines on
+when each topology excels.  No analogous study exists for VQCs.  Most prior
+work proposes a single new circuit ansatz and evaluates it on one or two
+benchmarks, making it difficult to draw general conclusions.
+
+In this work, we address this gap with a \emph{systematic empirical
+comparison} of four VQC architecture families on tabular regression and
+classification tasks:
+
+\begin{enumerate}
+  \item \textbf{Multi-layer fully-connected VQC (FC-VQC)} ---
+    cascaded VQC blocks with all-to-all inter-block connectivity
+    and configurable qubit layouts (e.g.\ $16 \to 4 \to 1$).
+  \item \textbf{Residual VQC (ResNet-VQC)} ---
+    VQC layers augmented with classical residual (skip) connections,
+    inspired by He et al.~\cite{he2016deep}.
+  \item \textbf{Quantum Transformer VQC (QT)} ---
+    a hybrid architecture where classical self-attention operates on
+    quantum-encoded features (Route~A).
+  \item \textbf{Fully Quantum Transformer VQC (FQT)} ---
+    an architecture where both the attention mechanism and the
+    feed-forward network are implemented as parameterized quantum
+    circuits (Route~B).
+\end{enumerate}
+
+All architectures are evaluated on five datasets (three regression, two
+classification) against strong classical baselines including XGBoost,
+CatBoost, and parameter-matched MLPs.  We further conduct ablation studies
+on the transformer components and measure circuit expressibility using the
+Sim et al.~\cite{sim2019expressibility} KL-divergence metric.
+
+Our main contributions are:
+\begin{itemize}
+  \item A unified experimental framework enabling fair, controlled comparison
+    across VQC architectures on identical data splits, training protocols,
+    and evaluation metrics.
+  \item Evidence that \textbf{FC-VQCs are the most parameter-efficient}
+    architecture, achieving regression accuracy competitive with
+    gradient-boosted trees using ${\sim}$700 parameters versus
+    ${\sim}$13{,}000 for equivalently accurate MLPs.
+  \item A \textbf{negative result on quantum attention}: self-attention
+    does not consistently help on small tabular data, and removing it can
+    improve performance---an important finding for practitioners.
+  \item Practical guidance: expressibility saturates at depth~${\approx}\,3$,
+    LayerNorm benefits fully quantum architectures on classification, and
+    residual connections offer a reliable middle ground between FC-VQC and
+    transformer complexity.
+\end{itemize}

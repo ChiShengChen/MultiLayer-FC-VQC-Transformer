@@ -1,20 +1,74 @@
-% TODO: Draft methods
-% Subsections:
-% \subsection{Multi-Layer Fully-Connected VQC}
-%   - Qubit layout notation (e.g. 16t4t1)
-%   - Type-3 vs Type-4 inter-token mixing
-%   - StronglyEntanglingLayers ansatz
-%
-% \subsection{ResNet-VQC}
-%   - Residual / skip connections across VQC layers
-%   - Architecture diagram
-%
-% \subsection{Quantum Transformer VQC}
-%   - Route A: QuantumTransformerVQC (hybrid classical-quantum attention)
-%   - Route B: FullQuantumTransformerVQC (fully quantum attention)
-%   - Multi-head extension
-%   - LayerNorm variant
-%
-% \subsection{Noise Model}
-%   - Single-qubit depolarizing channel after each layer
-%   - Noise strength $p_d \in \{0.001, 0.005, 0.01, 0.05\}$
+% Methods
+
+We compare four VQC architecture families, all built on the
+\texttt{StronglyEntanglingLayers} ansatz from PennyLane as the base
+quantum circuit block.
+
+\subsection{Multi-Layer Fully-Connected VQC (FC-VQC)}
+
+The FC-VQC cascades multiple VQC blocks with decreasing qubit counts,
+connected via classical fully-connected (dense) layers.  For example,
+the notation $16\mathrm{t}4\mathrm{t}1$ denotes a three-block architecture
+mapping 16~qubits $\to$ 4~qubits $\to$ 1~qubit, with each block consisting
+of \texttt{StronglyEntanglingLayers} at a fixed depth $d$ (typically~3).
+
+Two inter-block connectivity modes are supported:
+\begin{itemize}
+  \item \textbf{Type~4 (fully-connected):} Each qubit measurement from
+    block $\ell$ is connected to all angle-encoding inputs of block
+    $\ell{+}1$ via a learned linear projection.
+  \item \textbf{Type~3 (circular-shift):} A fixed permutation maps
+    block $\ell$ outputs to block $\ell{+}1$ inputs, reducing parameters.
+\end{itemize}
+
+\subsection{Residual VQC (ResNet-VQC)}
+
+ResNet-VQC augments the FC-VQC topology with classical residual connections.
+When the qubit count is preserved between adjacent blocks ($n_\ell = n_{\ell+1}$),
+a skip connection adds the input measurements to the output:
+\begin{equation}
+  \mathbf{z}_{\ell+1} = \mathrm{VQC}_{\ell+1}(\mathbf{z}_\ell) + \mathbf{z}_\ell.
+\end{equation}
+When dimensions differ, a learned linear projection is applied to the skip
+path.  This mirrors classical ResNets~\cite{he2016deep} and is motivated by
+the same goal: easing gradient flow through deep stacks of nonlinear blocks.
+
+\subsection{Quantum Transformer VQC (QT --- Route A)}
+
+QT implements a hybrid quantum--classical transformer block.  The input
+features are first encoded into a VQC, whose measurement outputs serve as
+token embeddings.  A \emph{classical} multi-head self-attention layer
+operates on these embeddings, followed by a VQC-based feed-forward network:
+\begin{equation}
+  \mathbf{h} = \mathrm{Attention}(\mathrm{VQC}_{\mathrm{enc}}(\mathbf{x}))
+  + \mathrm{VQC}_{\mathrm{enc}}(\mathbf{x}),
+\end{equation}
+\begin{equation}
+  \mathbf{y} = \mathrm{VQC}_{\mathrm{ffn}}(\mathrm{LayerNorm}(\mathbf{h}))
+  + \mathbf{h}.
+\end{equation}
+This route uses classical attention but quantum encoding and feed-forward
+processing.
+
+\subsection{Fully Quantum Transformer VQC (FQT --- Route B)}
+
+FQT replaces the classical attention with a parameterized quantum circuit
+that computes query--key interactions via entangling gates.  Both the
+attention mechanism and the feed-forward network are implemented as VQCs,
+making the entire transformer block quantum (except for measurement and
+re-encoding).
+
+We also study a \textbf{+LayerNorm} variant that applies classical
+LayerNorm to the FQT outputs before the next layer, which our ablation
+shows is important for classification performance.
+
+\subsection{Noise Model}
+\label{sec:noise-model}
+
+To assess near-term hardware viability, we inject single-qubit depolarizing
+noise after every layer of \texttt{StronglyEntanglingLayers}:
+\begin{equation}
+  \mathcal{E}(\rho) = (1 - p_d)\,\rho + \frac{p_d}{3}(X\rho X + Y\rho Y + Z\rho Z),
+\end{equation}
+where $p_d \in \{0.001, 0.005, 0.01, 0.05\}$ controls the noise strength.
+% TODO: Expand after noise experiments are complete.
