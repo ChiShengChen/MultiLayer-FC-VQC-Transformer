@@ -1,0 +1,48 @@
+{
+  "experiment": "CA_Housing",
+  "task_type": "regression",
+  "data": {
+    "csv_path": "data/cal_housing.csv",
+    "target_column": "MedHouseVal",
+    "clip_percentile": 0.04
+  },
+  "models": [
+    {
+      "name": "FullyConnectedVQCs_8t3t1",
+      "module": "models",
+      "vqc_depth": 3,
+      "hidden_layers": 3
+    },
+    {
+      "name": "ResNetVQC",
+      "module": "shared_models",
+      "vqc_depth": 3,
+      "hidden_layers": 3
+    },
+    {
+      "name": "QuantumTransformerVQC",
+      "module": "shared_models",
+      "vqc_depth": 3,
+      "hidden_layers": 2
+    },
+    {
+      "name": "FullQuantumTransformerVQC",
+      "module": "shared_models",
+      "vqc_depth": 3,
+      "hidden_layers": 2
+    }
+  ],
+  "training": {
+    "lr": 0.005,
+    "weight_decay": 0.0,
+    "use_scheduler": false,
+    "epochs": 10000,
+    "print_every": 500,
+    "eval_interval": 500
+  },
+  "batch_size": {
+    "train": null,
+    "val": null,
+    "test": null
+  }
+}

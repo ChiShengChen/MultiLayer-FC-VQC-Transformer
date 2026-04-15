@@ -198,18 +198,30 @@ def _resolve_csv(cfg: dict) -> str:
     return p
 
 
+def set_global_seed(seed: int):
+    """Set random seed for reproducibility across numpy, torch, and python."""
+    import random
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
 def load_data(cfg: dict) -> dict:
     fn = _import_module("functions", cfg["experiment"])
     csv = _resolve_csv(cfg)
     target = cfg["data"]["target_column"]
     clip = cfg["data"].get("clip_percentile", 0)
     bs = cfg.get("batch_size", {})
+    seed = cfg.get("seed", 42)
 
     if cfg["task_type"] == "regression":
         train_ld, val_ld, test_ld, y_scaler, n_feat, x_scaler = fn.prepare_datasets(
             csv_path=csv, target_column=target, clip_percentile=clip,
             batch_size_train=bs.get("train"), batch_size_val=bs.get("val"),
             batch_size_test=bs.get("test"),
+            random_state=seed,
         )
         return dict(train_loader=train_ld, val_loader=val_ld, test_loader=test_ld,
                     y_scaler=y_scaler, x_scaler=x_scaler,
@@ -220,6 +232,7 @@ def load_data(cfg: dict) -> dict:
             csv_path=csv, target_column=target, clip_percentile=clip,
             batch_size_train=bs.get("train"), batch_size_val=bs.get("val"),
             batch_size_test=bs.get("test"),
+            random_state=seed,
         )
         return dict(train_loader=train_ld, val_loader=val_ld, test_loader=test_ld,
                     y_scaler=None, x_scaler=x_scaler,
@@ -1237,6 +1250,8 @@ examples:
                     help="Resume from existing output dir: load previous results, train new models, regenerate comparison")
     p.add_argument("--replot", type=str, metavar="OUTPUT_DIR",
                     help="Reload best weights from output dir, re-infer predictions, regenerate comparison plots (no training)")
+    p.add_argument("--seed", type=int, default=None,
+                    help="Random seed (overrides config; sets numpy/torch/python seeds)")
 
     args = p.parse_args()
 
@@ -1255,6 +1270,11 @@ examples:
 
     cfg = load_config(args.config)
     cfg = apply_cli_overrides(cfg, args)
+
+    if args.seed is not None:
+        cfg["seed"] = args.seed
+    seed = cfg.get("seed", 42)
+    set_global_seed(seed)
 
     if args.sweep:
         run_sweep(cfg)
