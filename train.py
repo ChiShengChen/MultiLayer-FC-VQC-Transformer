@@ -248,7 +248,8 @@ def load_data(cfg: dict) -> dict:
 def create_output_dir(cfg: dict) -> Path:
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     exp = cfg["experiment"]
-    out = ROOT_DIR / "outputs" / f"{ts}_{exp}"
+    seed = cfg.get("seed", 42)
+    out = ROOT_DIR / "outputs" / f"{ts}_{exp}_seed{seed}"
     out.mkdir(parents=True, exist_ok=True)
     return out
 
