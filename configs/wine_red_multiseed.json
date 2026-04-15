@@ -2,7 +2,7 @@
   "experiment": "WineQuality_Red",
   "task_type": "classification",
   "data": {
-    "csv_path": "data/winequality-red.csv",
+    "csv_path": "data/wine-quality-red.csv",
     "target_column": "quality",
     "clip_percentile": 0
   },

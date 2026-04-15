@@ -2,7 +2,7 @@
   "experiment": "CA_Housing",
   "task_type": "regression",
   "data": {
-    "csv_path": "data/cal_housing.csv",
+    "csv_path": "data/california_housing.csv",
     "target_column": "MedHouseVal",
     "clip_percentile": 0.04
   },
