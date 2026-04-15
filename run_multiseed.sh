@@ -24,7 +24,16 @@ echo "╚═══════════════════════�
 echo ""
 
 for cfg in "${CONFIGS[@]}"; do
+    # Extract experiment name from config
+    exp=$(python3 -c "import json; print(json.load(open('$cfg'))['experiment'])")
     for seed in "${SEEDS[@]}"; do
+        # Skip if a completed run already exists for this (experiment, seed)
+        existing=$(find outputs/ -maxdepth 1 -type d -name "*_${exp}_seed${seed}" 2>/dev/null | head -1)
+        if [ -n "$existing" ] && [ -f "${existing}/comparison_metrics.csv" ]; then
+            echo ""
+            echo "  ⏭ Skipping $exp seed=$seed (found ${existing})"
+            continue
+        fi
         echo ""
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "  Config: $cfg  |  Seed: $seed"
