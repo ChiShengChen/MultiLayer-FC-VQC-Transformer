@@ -1,0 +1,123 @@
+\newcommand{\vspan}{\mathsf{span}}
+%------------------------------------
+% Routines
+%------------------------------------
+\newcommand{\findspace}{\mathsf{FindSpace}}
+\newcommand{\repmax}{\mathsf{RepRMAX}}
+\newcommand{\rstat}{\mathsf{rSTAT}}
+\newcommand{\rpvi}{\mathsf{rPVI}}
+\newcommand{\pvi}{\mathsf{PVI}}
+\newcommand{\rhh}{\mathsf{rHeavyHitters}}
+\newcommand{\rupdate}{\mathsf{RepUpdateK}}
+\newcommand{\rmax}{\mathsf{RMax}}
+
+%------------------------------------
+% RL Notation
+%------------------------------------
+\newcommand{\empmdp}{\hat{\mathcal{M}}}
+
+\newcommand{\mdp}{\mathcal{M}}
+\newcommand{\states}{\mathcal{S}}
+\newcommand{\actions}{\mathcal{A}}
+\newcommand{\rew}{R}
+\newcommand{\transitions}{P}
+\newcommand{\pivalue}{V^{\pi}(s)}
+\newcommand{\optvalue}{V^{*}(s)}
+\newcommand{\piq}{Q^{\pi}(s, a)}
+\newcommand{\optq}{Q^{*}(s, a)}
+\newcommand{\bellopt}{\mathcal{T}}
+\newcommand{\tsamp}{S}
+\newcommand{\gm}{G_{\mathcal{\mdp}}}
+\newcommand{\parallelsampling}{\mathbf{PS}(\gm)}
+\newcommand{\modelmdp}{\widehat{\mdp}_K}
+\newcommand{\modelpol}{\pi_{\hat{\mdp}_K}}
+\newcommand{\modelpoli}{\pi_{\hat{\mdp}_{K,i}}}
+\newcommand{\modelpolk}{\pi_{\hat{\mdp}_{K,k}}}
+\newcommand{\modelpolj}{\pi_{\hat{\mdp}_{K,j}}}
+\newcommand{\appoptpi}{\widehat{\pi}^{*}}
+\newcommand{\explore}{\mathsf{Explore}}
+
+%------------------------------------
+% Reproducible RL Notation
+%------------------------------------
+
+\newcommand{\rtransitions}{\widehat{P}_{r}}
+
+%------------------------------------
+% misc
+%------------------------------------
+\newcommand{\poly}{\mathsf{poly}}
+\newcommand{\pr}{\textbf{Pr}}
+\renewcommand{\Pr}{\textbf{Pr}}
+\newcommand{\E}{\mathop{\mathbb{E}}}
+\newcommand{\distover}[1]{\Delta(#1)}
+\newcommand{\cX}{\mathcal{X}}
+\newcommand{\cY}{\mathcal{Y}}
+\newcommand{\cH}{\mathcal{H}}
+\newcommand{\cO}{\mathcal{O}}
+\newcommand{\algo}{\pzccal{A}}
+
+\newcommand{\supp}{\text{supp}}
+
+\newcommand{\ms}[1]{\textcolor{blue}{[MS: #1]}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\definecolor{lightyellow}{rgb}{1.0, 0.95, 0.7}
+% \definecolor{Blue}{rgb}{0, 0.18, 0.65}
+\definecolor{Blue}{rgb}{0, 0, 0.8}
+\definecolor{blue}{rgb}{0,0,1}
+\definecolor{mydarkblue}{rgb}{0,0.08,0.45}
+\definecolor{mydarkblue2}{rgb}{0.133, 0.133, 0.698}
+\definecolor{echodrk}{HTML}{0099cc}
+\definecolor{mymauve}{rgb}{0.58,0,0.82}
+% \definecolor{darkgreen}{rgb}{0.01,0.50,0.2}
+\definecolor{darkgreen}{rgb}{0,0.40,0}
+\definecolor{firebrick}{rgb}{0.698,0.133,0.133}
+\definecolor{midnightblue}{rgb}{0.1,0.1,0.44}
+\definecolor{citeblue}{RGB}{0, 113, 188}
+\definecolor{oxfordblue}{rgb}{0.0,0.13,0.28}
+\definecolor{prussianblue}{rgb}{0.0,0.19,0.33}
+\definecolor{coolteal}{rgb}{0, 0.45, 0.45}
+\definecolor{olive}{rgb}{0.1, 0.3, 0}
+\definecolor{mypurple}{rgb}{0.5,0,0.5}
+\definecolor{almond}{rgb}{0.94, 0.87, 0.8}
+
+% colors for the blocks
+\definecolor{blue_ampEncoding}{HTML}{DAE8FC}
+\definecolor{green_encoder}{HTML}{D5E8D4}
+\definecolor{purple_decoder}{HTML}{E1D5E7}
+\definecolor{yellow_measure}{HTML}{FFF2CC}
+\definecolor{gray_block}{HTML}{F5F5F5}
+\definecolor{pink_dru}{HTML}{FAD9D5}
+\definecolor{orange_v}{HTML}{FAD7AC}
+\definecolor{Lightblue}{HTML}{E7F4FC}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\argmax}{\text{arg}\max}
+\newcommand{\argmin}{\text{arg}\min}
+\DeclareDocumentCommand \norm { o m }{{\lVert #2 \rVert_#1}}
+
+\newcommand{\eqdef}{\mathrel{\mathop:}=}
+
+%------------------------------------
+% Theorems
+%------------------------------------
+  
+\newtheorem{definition}{Definition}[section]
+\newtheorem{lemma}{Lemma}[section]
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{observation}{Observation}[section]
+\newtheorem{claim}{Claim}[section]
+\declaretheorem[name=Lemma,numberwithin=section]{lem}
+
+
+\declaretheoremstyle[%
+  spaceabove=10pt,%
+  spacebelow=2pt,%
+  headfont=\normalfont\itshape,%
+  postheadspace=0em,%
+  qed=%
+]{prfstyle} 
+
+\declaretheorem[name={Proof Sketch},style=prfstyle,unnumbered,
+]{prfsketch}

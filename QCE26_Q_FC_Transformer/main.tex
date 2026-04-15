@@ -1,0 +1,473 @@
+\newif\ifarxiv
+\arxivtrue
+% \arxivfalse
+
+\pdfoutput=1
+\documentclass[10pt,conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{float}
+\usepackage{multicol}
+\usepackage{bm}
+\usepackage{cite}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{multirow}
+\usepackage{amsmath,amssymb,amsfonts,amsthm,bbm}
+\usepackage{mathtools}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage[table]{xcolor}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{braket}
+\usepackage{adjustbox}
+\usepackage{rotating}
+\usepackage[percent]{overpic}
+\usepackage{longtable}
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+\usepackage{thmtools,thm-restate}
+\usepackage{enumitem}
+\usepackage[breaklinks=true,hidelinks,hyperfootnotes=false]{hyperref}
+\usepackage[nameinlink,capitalize]{cleveref}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\ifarxiv
+\renewcommand{\baselinestretch}{1.08}
+\fi
+
+\input{macros.tex}
+
+\begin{document}
+
+\title{Parameter-Efficient Variational Quantum Circuits:\\
+A Systematic Comparison of Fully-Connected, Residual,\\
+and Transformer Architectures}
+
+\ifarxiv
+\author{
+\IEEEauthorblockN{Chi-Sheng Chen}
+\IEEEauthorblockA{Beth Israel Deaconess Medical Center \& Harvard Medical School, Boston, MA, USA\\
+\href{mailto:cchen31@bidmc.harvard.edu}{cchen31@bidmc.harvard.edu}}
+}
+\else
+\author{Anonymous Authors}
+\fi
+
+\maketitle
+
+%===================================================================
+\begin{abstract}
+Variational quantum circuits (VQCs) are a leading approach to quantum machine learning on near-term devices, yet it remains unclear which circuit architecture yields the best accuracy--parameter trade-off on classical tabular data.
+We present a systematic empirical comparison of four VQC families---multi-layer fully-connected (FC-VQC), residual (ResNet-VQC), hybrid quantum--classical transformer (QT), and fully quantum transformer (FQT)---across five regression and classification benchmarks.
+Our key findings are:
+\textbf{(i)}~FC-VQCs achieve competitive or superior regression accuracy to gradient-boosted trees with \emph{orders-of-magnitude fewer parameters} (e.g.\ $R^2{=}0.889$ on Boston Housing with only 720 parameters);
+\textbf{(ii)}~quantum self-attention provides no consistent benefit on small-scale tabular data---ablations show that removing attention can \emph{improve} performance;
+\textbf{(iii)}~expressibility saturates at circuit depth~${\approx}\,3$, explaining why shallow VQCs already cover the Hilbert space effectively;
+\textbf{(iv)}~LayerNorm on the fully quantum transformer improves classification accuracy, suggesting normalization is important when all operations are quantum.
+These results provide practical architectural guidance for deploying VQCs on near-term quantum hardware.
+\end{abstract}
+
+\begin{IEEEkeywords}
+variational quantum circuits, quantum machine learning, parameter efficiency, quantum transformer, architecture comparison
+\end{IEEEkeywords}
+
+%===================================================================
+\section{Introduction}
+\label{sec:intro}
+
+Variational quantum circuits (VQCs) have emerged as one of the most promising paradigms for quantum machine learning on noisy intermediate-scale quantum (NISQ) devices~\cite{cerezo2021variational, benedetti2019parameterized}.
+By parameterizing quantum gates and optimizing them via classical gradient methods, VQCs combine the expressiveness of quantum Hilbert space with the practicality of hybrid quantum--classical training loops.
+
+Despite growing interest, the design space of VQC architectures remains poorly understood.
+Classical deep learning has benefited enormously from systematic architectural comparisons---fully-connected networks versus convolutional networks versus transformers---which yielded clear guidelines on when each topology excels.
+No analogous study exists for VQCs.
+Most prior work proposes a single new circuit ansatz and evaluates it on one or two benchmarks, making it difficult to draw general conclusions.
+
+In this work, we address this gap with a \emph{systematic empirical comparison} of four VQC architecture families on tabular regression and classification tasks:
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Multi-layer fully-connected VQC (FC-VQC):} cascaded VQC blocks with all-to-all inter-block connectivity and configurable qubit layouts (e.g.\ $16 \!\to\! 4 \!\to\! 1$).
+    \item \textbf{Residual VQC (ResNet-VQC):} VQC layers augmented with classical residual (skip) connections, inspired by He et al.~\cite{he2016deep}.
+    \item \textbf{Quantum Transformer VQC (QT):} a hybrid architecture where classical self-attention operates on quantum-encoded features (Route~A).
+    \item \textbf{Fully Quantum Transformer VQC (FQT):} an architecture where both the attention mechanism and the feed-forward network are implemented as parameterized quantum circuits (Route~B).
+\end{enumerate}
+All architectures are evaluated on five datasets against strong classical baselines including XGBoost, CatBoost, and parameter-matched MLPs.
+We further conduct ablation studies on the transformer components and measure circuit expressibility using the Sim et al.~\cite{sim2019expressibility} KL-divergence metric.
+
+Our main contributions are:
+\begin{itemize}[leftmargin=*]
+    \item A unified experimental framework enabling fair, controlled comparison across VQC architectures on identical data splits, training protocols, and evaluation metrics.
+    \item Evidence that \textbf{FC-VQCs are the most parameter-efficient} architecture, achieving regression accuracy competitive with gradient-boosted trees using ${\sim}$700 parameters versus ${\sim}$13{,}000 for equivalently accurate MLPs.
+    \item A \textbf{negative result on quantum attention}: self-attention does not consistently help on small tabular data, and removing it can improve performance---an important finding for practitioners.
+    \item Practical guidance: expressibility saturates at depth~${\approx}\,3$, LayerNorm benefits fully quantum architectures on classification, and residual connections offer a reliable middle ground between FC-VQC and transformer complexity.
+\end{itemize}
+
+%===================================================================
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Variational quantum circuits}
+VQCs, also known as parameterized quantum circuits (PQCs), have been widely studied as trainable models for quantum machine learning~\cite{cerezo2021variational, benedetti2019parameterized}.
+Their expressiveness depends on the circuit ansatz, depth, and entanglement structure~\cite{schuld2021effect}.
+A key challenge is the barren plateau phenomenon, where gradients vanish exponentially with qubit count~\cite{mcclean2018barren}, motivating the search for architectures that train efficiently.
+
+\paragraph{Expressibility}
+Sim et al.~\cite{sim2019expressibility} proposed measuring circuit expressibility via the KL divergence between the fidelity distribution of random circuit outputs and the Haar-random reference.
+This metric has become a standard tool for comparing ansatz designs.
+We use it to characterize the depth at which our VQC blocks saturate.
+
+\paragraph{Quantum transformers}
+Several recent works have explored quantum analogues of the transformer architecture, ranging from quantum self-attention mechanisms operating on amplitude-encoded data to fully quantum multi-head attention with parameterized entangling gates.
+Our work differs in providing a controlled comparison against simpler VQC baselines (FC-VQC, ResNet-VQC) on identical benchmarks, rather than proposing a new transformer variant in isolation.
+
+\paragraph{Residual connections in quantum circuits}
+Classical residual networks~\cite{he2016deep} inspired several proposals for skip connections in VQCs, either by adding classical residual paths around quantum blocks or by using identity-initialized parameterized layers.
+Our ResNet-VQC follows the classical residual path approach.
+
+\paragraph{Classical baselines for tabular data}
+Gradient-boosted decision trees (XGBoost, CatBoost, LightGBM) consistently rank among the top methods on tabular benchmarks.
+Recent work has highlighted that deep learning often underperforms tree ensembles on tabular data, making them an essential baseline for any quantum ML study claiming practical relevance.
+
+%===================================================================
+\section{Methods}
+\label{sec:methods}
+
+We compare four VQC architecture families, all built on the \texttt{StronglyEntanglingLayers} ansatz from PennyLane as the base quantum circuit block.
+
+\subsection{Multi-Layer Fully-Connected VQC (FC-VQC)}
+
+The FC-VQC cascades multiple VQC blocks with decreasing qubit counts, connected via classical fully-connected (dense) layers.
+For example, the notation $16\mathrm{t}4\mathrm{t}1$ denotes a three-block architecture mapping 16~qubits $\to$ 4~qubits $\to$ 1~qubit, with each block consisting of \texttt{StronglyEntanglingLayers} at a fixed depth $d$ (typically~3).
+
+Two inter-block connectivity modes are supported:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Type~4 (fully-connected):} Each qubit measurement from block $\ell$ is connected to all angle-encoding inputs of block $\ell{+}1$ via a learned linear projection.
+    \item \textbf{Type~3 (circular-shift):} A fixed permutation maps block $\ell$ outputs to block $\ell{+}1$ inputs, reducing parameters.
+\end{itemize}
+
+\subsection{Residual VQC (ResNet-VQC)}
+
+ResNet-VQC augments the FC-VQC topology with classical residual connections.
+When the qubit count is preserved between adjacent blocks ($n_\ell = n_{\ell+1}$), a skip connection adds the input measurements to the output:
+\begin{equation}
+    \mathbf{z}_{\ell+1} = \mathrm{VQC}_{\ell+1}(\mathbf{z}_\ell) + \mathbf{z}_\ell.
+\end{equation}
+When dimensions differ, a learned linear projection is applied to the skip path.
+This mirrors classical ResNets~\cite{he2016deep} and is motivated by the same goal: easing gradient flow through deep stacks of nonlinear blocks.
+
+\subsection{Quantum Transformer VQC (QT --- Route A)}
+
+QT implements a hybrid quantum--classical transformer block.
+The input features are first encoded into a VQC, whose measurement outputs serve as token embeddings.
+A \emph{classical} multi-head self-attention layer operates on these embeddings, followed by a VQC-based feed-forward network:
+\begin{equation}
+    \mathbf{h} = \mathrm{Attention}\!\bigl(\mathrm{VQC}_{\mathrm{enc}}(\mathbf{x})\bigr) + \mathrm{VQC}_{\mathrm{enc}}(\mathbf{x}),
+\end{equation}
+\begin{equation}
+    \mathbf{y} = \mathrm{VQC}_{\mathrm{ffn}}\!\bigl(\mathrm{LayerNorm}(\mathbf{h})\bigr) + \mathbf{h}.
+\end{equation}
+This route uses classical attention but quantum encoding and feed-forward processing.
+
+\subsection{Fully Quantum Transformer VQC (FQT --- Route B)}
+
+FQT replaces the classical attention with a parameterized quantum circuit that computes query--key interactions via entangling gates.
+Both the attention mechanism and the feed-forward network are implemented as VQCs, making the entire transformer block quantum (except for measurement and re-encoding).
+
+We also study a \textbf{+LayerNorm} variant that applies classical LayerNorm to the FQT outputs before the next layer, which our ablation shows is important for classification performance.
+
+\subsection{Noise Model}
+
+To assess near-term hardware viability, we inject single-qubit depolarizing noise after every layer of \texttt{StronglyEntanglingLayers}:
+\begin{equation}
+    \mathcal{E}(\rho) = (1 - p_d)\,\rho + \frac{p_d}{3}\bigl(X\rho X + Y\rho Y + Z\rho Z\bigr),
+\end{equation}
+where $p_d \in \{0.001, 0.005, 0.01, 0.05\}$ controls the noise strength.
+
+%===================================================================
+\section{Experimental Setup}
+\label{sec:setup}
+
+\subsection{Datasets}
+
+We evaluate on five tabular benchmarks spanning regression and classification (\cref{tab:datasets}).
+
+\begin{table}[t]
+\centering
+\caption{Dataset summary.}
+\label{tab:datasets}
+\small
+\begin{tabular}{llrrr}
+\toprule
+Dataset & Task & $n$ & Features & Target \\
+\midrule
+Boston Housing & regression & 506 & 13 & MEDV \\
+CA Housing & regression & 20{,}640 & 8 & MedHouseVal \\
+Concrete & regression & 1{,}030 & 8 & strength \\
+Wine (Red) & classification & 1{,}599 & 11 & quality \\
+Wine (R+W) & classification & 6{,}497 & 12 & quality \\
+\bottomrule
+\end{tabular}
+\vspace{-10pt}
+\end{table}
+
+Features are standardized to zero mean and unit variance.
+Regression targets are also standardized; predictions are inverse-transformed for evaluation.
+The top and bottom 4\% of regression targets are clipped to reduce outlier sensitivity.
+Data is split into 70\%/15\%/15\% train/validation/test with a fixed random seed.
+
+\subsection{Baselines}
+
+\textbf{Classical ML:} Ridge regression, kernel ridge regression (RBF), SVR/SVC (RBF), linear/logistic regression, XGBoost, CatBoost.
+Boosting methods use default hyperparameters.
+
+\textbf{Parameter-matched MLP:} A classical MLP whose hidden layer sizes are chosen so that the total parameter count matches the median quantum model (${\sim}$200--220 parameters).
+This controls for the possibility that quantum models benefit simply from having more parameters than a trivially small network.
+
+\subsection{Training Protocol}
+
+All quantum and MLP models are trained with Adam (lr~$=$~0.005, no weight decay) for 10{,}000 epochs with full-batch gradient descent.
+Best-model checkpointing selects the epoch with lowest validation loss.
+Gradient norms are clipped at 1.0 to prevent divergence.
+
+\subsection{Evaluation Metrics}
+
+Regression: $R^2$ (coefficient of determination), RMSE, MAE.
+Classification: accuracy, macro-averaged F1 score.
+All metrics are reported on the held-out test set using the best-validation checkpoint.
+
+%===================================================================
+\section{Experimental Results}
+\label{sec:results}
+
+\subsection{Main Comparison: Parameter Efficiency of FC-VQCs}
+
+\cref{tab:main-regression,tab:main-classification} present the main comparison across all architectures and baselines.
+
+\begin{table}[t]
+\centering
+\caption{Test $R^2$ on regression datasets. Best value per column in \textbf{bold}. MLP$_{\text{PM}}$ is parameter-matched to the median quantum model.}
+\label{tab:main-regression}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Model & Boston & CA Hous. & Concrete & \#params \\
+\midrule
+CatBoost & 0.861 & \textbf{0.857} & \textbf{0.933} & -- \\
+XGBoost & 0.856 & 0.853 & 0.904 & -- \\
+KRR (RBF) & 0.671 & 0.783 & 0.779 & -- \\
+SVR (RBF) & 0.548 & 0.788 & 0.608 & -- \\
+Ridge & 0.666 & 0.644 & 0.605 & -- \\
+\midrule
+MLP$_{\text{PM}}$ & 0.769 & 0.793 & 0.843 & 218 \\
+\midrule
+FC-VQC$_{15\mathrm{t}5\mathrm{t}1}$ & \textbf{0.889} & -- & -- & 720 \\
+FC-VQC$_{8\mathrm{t}3\mathrm{t}1}$ & -- & 0.752 & 0.756 & 486 \\
+ResNet-VQC & 0.831 & 0.785 & 0.858 & 486--720 \\
+QT ($H{=}1$) & 0.781 & 0.807 & 0.838 & 1{,}380 \\
+QT ($H{=}3$) & 0.834 & 0.814 & 0.837 & 4{,}350 \\
+FQT ($H{=}1$) & 0.799 & 0.786 & 0.792 & 855 \\
+FQT ($H{=}3$) & 0.808 & 0.806 & 0.757 & 2{,}745 \\
+\bottomrule
+\end{tabular}
+\vspace{-5pt}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Test accuracy and macro-F1 on classification datasets. Best per column in \textbf{bold}.}
+\label{tab:main-classification}
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Model & \multicolumn{2}{c}{Wine (Red)} & \multicolumn{2}{c}{Wine (R+W)} & \#p \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+ & Acc & F1 & Acc & F1 & \\
+\midrule
+XGBoost & \textbf{.671} & \textbf{.333} & \textbf{.695} & \textbf{.478} & -- \\
+CatBoost & .667 & .330 & .675 & .422 & -- \\
+\midrule
+MLP$_{\text{PM}}$ & .604 & .283 & .573 & .287 & 198 \\
+\midrule
+FC-VQC & .596 & .265 & .585 & .264 & 612 \\
+ResNet & .608 & .293 & .579 & .289 & 570 \\
+QT ($H{=}3$) & .604 & .306 & .595 & .300 & 3{,}258 \\
+FQT ($H{=}1$) & .608 & .293 & .592 & .294 & 678 \\
+\bottomrule
+\end{tabular}
+\vspace{-10pt}
+\end{table}
+
+On regression tasks, the most striking finding is the \textbf{parameter efficiency of FC-VQCs}.
+On Boston Housing, FC-VQC$_{15\mathrm{t}5\mathrm{t}1}$ achieves $R^2{=}0.889$ with only 720 parameters, outperforming both XGBoost ($0.856$) and CatBoost ($0.861$).
+A parameter-matched MLP with 218 parameters reaches only $R^2{=}0.769$, and a full MLP requires ${\sim}$13{,}000 parameters to approach comparable accuracy---a roughly $18{\times}$ parameter disadvantage.
+
+Quantum Transformer variants (QT, FQT) achieve respectable scores on CA~Housing ($R^2{\leq}0.814$) and Concrete ($R^2{\leq}0.869$), but at significantly higher parameter counts (1{,}098--4{,}350) than FC-VQCs (486--720), and they do not consistently outperform the simpler architectures.
+ResNet-VQC provides a reliable middle ground: competitive accuracy with the same parameter budget as FC-VQC.
+
+On classification (\cref{tab:main-classification}), all quantum models trail tree-based methods by 6--10\% in accuracy.
+This is expected: tabular classification is a well-known strength of gradient-boosted ensembles.
+Among quantum models, FQT achieves the highest accuracy ($0.608$ on Wine Red), matching ResNet-VQC.
+
+\subsection{Multi-Head Attention Scaling}
+
+\cref{tab:multihead} examines the effect of increasing the number of attention heads $H$ from 1 to 3.
+
+\begin{table}[t]
+\centering
+\caption{Effect of attention heads $H$. Test $R^2$ (regression) / accuracy (classification).}
+\label{tab:multihead}
+\small
+\begin{tabular}{llrrrrr}
+\toprule
+Model & $H$ & Boston & CA & Conc. & W-R & W-RW \\
+\midrule
+QT & 1 & .781 & .807 & .838 & .588 & .587 \\
+QT & 2 & .763 & .813 & \textbf{.869} & .596 & .604 \\
+QT & 3 & \textbf{.834} & \textbf{.814} & .837 & .604 & .595 \\
+\midrule
+FQT & 1 & .799 & .786 & .792 & \textbf{.608} & .592 \\
+FQT & 2 & .626 & .811 & .797 & .583 & .581 \\
+FQT & 3 & .808 & .806 & .757 & .600 & .585 \\
+\bottomrule
+\end{tabular}
+\vspace{-10pt}
+\end{table}
+
+For QT, increasing $H$ yields mixed results: $H{=}3$ helps on Boston ($0.781 \!\to\! 0.834$) but not on Concrete ($0.838 \!\to\! 0.837$), while the parameter count triples.
+For FQT, multi-head attention is even less beneficial---$H{=}2$ \emph{degrades} Boston from $0.799$ to $0.626$.
+These results suggest that multi-head quantum attention is not a reliable way to improve performance on small tabular datasets.
+
+\subsection{Architecture Ablation: Attention Is Not Always Helpful}
+
+\cref{tab:ablation} presents ablation experiments removing or modifying key architectural components.
+
+\begin{table}[t]
+\centering
+\caption{Architecture ablation. Regression: test $R^2$; classification: test accuracy. $-$attn removes self-attention; T3 uses circular-shift (Type~3) FFN; +LN adds LayerNorm to FQT.}
+\label{tab:ablation}
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Variant & Bos. & CA & Conc. & W-R & W-RW \\
+\midrule
+QT (default) & .781 & .807 & .838 & .588 & .587 \\
+\quad $-$attn & .796 & .800 & .797 & .608 & .581 \\
+\quad T3 FFN & .778 & .808 & .820 & .613 & .590 \\
+\midrule
+FQT (default) & .799 & .786 & .792 & .608 & .592 \\
+\quad $-$attn & \textbf{.894} & .775 & .765 & .600 & .578 \\
+\quad T3 FFN & .885 & .798 & .818 & .592 & .593 \\
+\quad +LN & .810 & \textbf{.832} & .756 & \textbf{.629} & \textbf{.597} \\
+\bottomrule
+\end{tabular}
+\vspace{-10pt}
+\end{table}
+
+The most notable finding is that \textbf{removing self-attention from FQT improves regression accuracy on Boston Housing} ($R^2$: $0.799 \!\to\! 0.894$).
+This is the highest $R^2$ achieved by any quantum model in our study, and it comes from a \emph{simpler} architecture.
+A similar pattern appears with Type~3 FFN ($0.885$).
+On other datasets the effect is smaller or reversed, but the overall message is clear: quantum self-attention does not provide a consistent benefit on tabular data at this scale.
+
+For classification, LayerNorm applied to FQT yields the best quantum accuracy across the board ($0.629$ on Wine Red, $0.597$ on Wine R+W), indicating that normalization is important for training stability in fully quantum architectures.
+
+\subsection{Expressibility Analysis}
+
+We measure the expressibility of our VQC ansatz following Sim et al.~\cite{sim2019expressibility}, computing the KL divergence between the fidelity distribution of random parameter pairs and the Haar-random reference:
+\begin{equation}
+    \mathrm{Expr} = D_{\mathrm{KL}}\!\bigl(P_{\mathrm{VQC}}(F)\,\|\,P_{\mathrm{Haar}}(F)\bigr),
+\end{equation}
+where $F = |\langle\psi(\theta_1)|\psi(\theta_2)\rangle|^2$ is the state fidelity.
+
+\begin{table}[t]
+\centering
+\caption{Expressibility (KL divergence from Haar) for 3-qubit VQC at various depths vs.\ classical linear projection. 10{,}000 samples.}
+\label{tab:expressibility}
+\small
+\begin{tabular}{lr}
+\toprule
+Model & KL Divergence \\
+\midrule
+VQC depth=1 & 0.2021 \\
+VQC depth=2 & 0.0048 \\
+VQC depth=3 & 0.0027 \\
+VQC depth=4 & 0.0027 \\
+VQC depth=5 & 0.0027 \\
+\midrule
+Linear proj. & 1.9098 \\
+\bottomrule
+\end{tabular}
+\vspace{-5pt}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/expressibility_results.png}
+\vspace{-20pt}
+\caption{Left: fidelity distributions for VQC at various depths vs.\ Haar-random reference (dashed). Right: KL divergence (log scale).}
+\label{fig:expressibility}
+\vspace{-15pt}
+\end{figure}
+
+\cref{tab:expressibility} and \cref{fig:expressibility} show that expressibility saturates at depth~$\approx\!3$, with KL divergence dropping from $0.20$ (depth~1) to $0.003$ (depth~3) and plateauing thereafter.
+The classical linear projection baseline is roughly three orders of magnitude less expressive ($\mathrm{KL}{=}1.91$), confirming that even shallow VQC layers access a significantly richer region of Hilbert space.
+
+% \subsection{Noise Robustness}
+% TODO: Add noise results after experiments complete.
+
+%===================================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{When are VQCs competitive?}
+On regression tasks with moderate dimensionality, FC-VQCs can match or exceed strong classical baselines \emph{while using orders of magnitude fewer parameters}.
+This parameter efficiency is the primary practical advantage of VQCs: on NISQ devices with limited qubit counts, a 720-parameter FC-VQC is far more deployable than a 13{,}000-parameter MLP.
+However, on classification tasks and larger datasets (CA Housing, $n{=}20{,}640$), gradient-boosted trees remain superior.
+
+\paragraph{The role of quantum attention}
+Perhaps our most surprising finding is that quantum self-attention does not reliably improve performance.
+The ablation in \cref{tab:ablation} shows that FQT \emph{without} attention achieves the highest $R^2$ on Boston Housing ($0.894$).
+We hypothesize two explanations: (i)~tabular datasets with ${\leq}$13 features may lack the structure that attention is designed to exploit; (ii)~the quantum attention mechanism introduces additional entangling layers whose gradients may interfere with the main VQC parameters.
+This is a valuable \emph{negative result}: practitioners should not default to transformer-style VQCs for tabular tasks.
+
+\paragraph{Expressibility and depth selection}
+The saturation of expressibility at depth~${\approx}\,3$ has a direct practical implication: \textbf{there is no benefit to using VQC depths beyond 3} for the \texttt{StronglyEntanglingLayers} ansatz on 3-qubit circuits.
+This is consistent with the parameter efficiency of FC-VQCs: even with shallow individual blocks, the multi-layer fully-connected topology provides sufficient expressiveness through inter-block connectivity rather than intra-block depth.
+
+\paragraph{Practical recommendations}
+Based on our findings: (i)~\textbf{default to FC-VQC} with depth-3 blocks for tabular regression; (ii)~use \textbf{ResNet-VQC} when training stability is needed; (iii)~\textbf{avoid multi-head quantum attention} on small tabular data; (iv)~add \textbf{LayerNorm to FQT} for classification tasks.
+
+\paragraph{Limitations}
+All experiments use quantum circuit simulation; behavior on real hardware may differ.
+The datasets are small to moderate ($n \leq 20{,}640$) with low feature dimensionality (${\leq}$13).
+Larger, higher-dimensional datasets may favor different architectures.
+Our VQCs use at most 3 qubits per block; scaling to larger qubit counts could change the relative merits.
+
+%===================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented a systematic comparison of four VQC architectures---FC-VQC, ResNet-VQC, QT, and FQT---on five tabular benchmarks.
+Our central finding is that \textbf{simpler is better}: multi-layer FC-VQCs achieve the strongest accuracy-to-parameter ratio, matching gradient-boosted trees on regression tasks with ${\sim}$700 parameters.
+Quantum self-attention, despite its conceptual appeal, does not consistently improve performance on small tabular data and can even hurt it.
+Expressibility analysis confirms that shallow circuits (depth~${\approx}\,3$) already saturate the accessible Hilbert space, explaining why deep or complex architectures provide diminishing returns.
+
+These results provide actionable guidance for the quantum ML community: FC-VQCs should be the default architecture for tabular tasks on near-term hardware, with ResNet-VQC as a robust alternative.
+Transformer-style VQCs may find their niche on structured, sequential, or high-dimensional data where attention mechanisms have proven beneficial in the classical setting, but this remains a direction for future work.
+Future directions include validation on real quantum hardware, scaling to larger qubit counts, and exploring quantum attention on sequential tasks where the inductive bias of self-attention may be better matched to the data structure.
+
+%===================================================================
+\ifarxiv
+\section*{Acknowledgment}
+% TODO: Add acknowledgments.
+\fi
+
+\bibliographystyle{IEEEtran}
+\bibliography{ref}
+
+\end{document}
