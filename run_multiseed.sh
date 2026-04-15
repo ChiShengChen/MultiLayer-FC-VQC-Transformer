@@ -35,6 +35,9 @@ done
 
 echo ""
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║  All multi-seed runs complete.                           ║"
-echo "║  Run: python aggregate_multiseed.py to collect results.  ║"
+echo "║  All multi-seed runs complete. Aggregating results...    ║"
 echo "╚══════════════════════════════════════════════════════════╝"
+echo ""
+python aggregate_multiseed.py
+echo ""
+echo "Done. Results in paper/results/ and paper/figures/training_curves_comparison/"
