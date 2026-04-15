@@ -140,6 +140,14 @@ Recent work has highlighted that deep learning often underperforms tree ensemble
 
 We compare four VQC architecture families, all built on the \texttt{StronglyEntanglingLayers} ansatz from PennyLane as the base quantum circuit block.
 
+\subsection{Tokenization}
+\label{sec:tokenization}
+
+All architectures share a common tokenization scheme.
+Given an input $\mathbf{x} \in \mathbb{R}^{n_{\mathrm{feat}}}$, we pad it to the nearest multiple of~3 and partition it into $T = \lceil n_{\mathrm{feat}} / 3 \rceil$ \emph{tokens}, each of dimension~3.
+Each token maps to a 3-qubit VQC block via angle embedding.
+This fixed-size tokenization allows us to define attention over tokens while keeping individual circuits small (3 qubits), which is favorable for NISQ hardware.
+
 \subsection{Multi-Layer Fully-Connected VQC (FC-VQC)}
 
 The FC-VQC cascades multiple VQC blocks with decreasing qubit counts, connected via classical fully-connected (dense) layers.
@@ -147,8 +155,10 @@ For example, the notation $16\mathrm{t}4\mathrm{t}1$ denotes a three-block archi
 
 Two inter-block connectivity modes are supported:
 \begin{itemize}[leftmargin=*]
-    \item \textbf{Type~4 (fully-connected):} Each qubit measurement from block $\ell$ is connected to all angle-encoding inputs of block $\ell{+}1$ via a learned linear projection.
-    \item \textbf{Type~3 (circular-shift):} A fixed permutation maps block $\ell$ outputs to block $\ell{+}1$ inputs, reducing parameters.
+    \item \textbf{Type~4 (fully-connected):} All token outputs from block $\ell$ are stacked into a matrix $(T, 3)$, transposed to $(3, T)$, and flattened.
+    The resulting vector is re-chunked into $T$ groups of~3, so that each group mixes information from \emph{all} tokens.
+    This serves as a learned all-to-all inter-token projection.
+    \item \textbf{Type~3 (circular-shift):} A fixed cyclic permutation routes qubit~2 of the previous token and qubit~0 of the next token into each block, providing local inter-token connectivity with no extra parameters.
 \end{itemize}
 
 \subsection{Residual VQC (ResNet-VQC)}
@@ -162,24 +172,77 @@ When dimensions differ, a learned linear projection is applied to the skip path.
 This mirrors classical ResNets~\cite{he2016deep} and is motivated by the same goal: easing gradient flow through deep stacks of nonlinear blocks.
 
 \subsection{Quantum Transformer VQC (QT --- Route A)}
+\label{sec:qt}
 
 QT implements a hybrid quantum--classical transformer block.
-The input features are first encoded into a VQC, whose measurement outputs serve as token embeddings.
-A \emph{classical} multi-head self-attention layer operates on these embeddings, followed by a VQC-based feed-forward network:
+Given the padded input $\mathbf{x} \in \mathbb{R}^{3T}$, the architecture proceeds as follows.
+
+\paragraph{Design hypothesis}
+Classical self-attention has proven effective at learning pairwise feature interactions in transformers.
+QT tests whether this mechanism is also beneficial when applied to quantum-encoded token representations---i.e., whether \emph{classical attention on quantum features} captures useful inter-token correlations that a flat FC-VQC misses.
+
+\paragraph{Q/K/V projection via VQCs}
+For each attention head $h$ and each token $t \in \{1,\dots,T\}$, the query, key, and value are produced by separate 3-qubit VQCs:
 \begin{equation}
-    \mathbf{h} = \mathrm{Attention}\!\bigl(\mathrm{VQC}_{\mathrm{enc}}(\mathbf{x})\bigr) + \mathrm{VQC}_{\mathrm{enc}}(\mathbf{x}),
+    \mathbf{q}_t^{(h)} = \mathrm{VQC}_{Q}^{(h)}(\mathbf{x}_t;\, \theta_{Q,t}^{(h)}), \quad
+    \mathbf{k}_t^{(h)},\; \mathbf{v}_t^{(h)} \text{ analogously,}
+\end{equation}
+where $\mathbf{x}_t \in \mathbb{R}^3$ is the $t$-th token and each VQC applies \texttt{StronglyEntanglingLayers} of depth $d$ followed by Pauli-$Z$ measurement of all 3 qubits.
+This replaces the classical linear projections $W_Q, W_K, W_V$ with parameterized quantum circuits.
+
+\paragraph{Classical softmax attention}
+Attention scores and outputs follow the standard scaled dot-product form:
+\begin{equation}
+    \alpha_{ij}^{(h)} = \frac{\exp(\mathbf{q}_i^{(h)} \cdot \mathbf{k}_j^{(h)} / \sqrt{3})}
+    {\sum_{j'} \exp(\mathbf{q}_i^{(h)} \cdot \mathbf{k}_{j'}^{(h)} / \sqrt{3})},
 \end{equation}
 \begin{equation}
-    \mathbf{y} = \mathrm{VQC}_{\mathrm{ffn}}\!\bigl(\mathrm{LayerNorm}(\mathbf{h})\bigr) + \mathbf{h}.
+    \mathbf{a}_i^{(h)} = \sum_j \alpha_{ij}^{(h)} \, \mathbf{v}_j^{(h)}.
 \end{equation}
-This route uses classical attention but quantum encoding and feed-forward processing.
+Multi-head outputs are concatenated and linearly projected: $\mathbf{a}_i = W_O [\mathbf{a}_i^{(1)}; \cdots; \mathbf{a}_i^{(H)}]$.
+
+\paragraph{Residual + LayerNorm + VQC FFN}
+The attention output is combined with a residual connection and LayerNorm, then passed through a VQC-based feed-forward network (using Type~4 or Type~3 connectivity from \cref{sec:tokenization}), again with residual and LayerNorm:
+\begin{equation}
+    \mathbf{h} = \mathrm{LN}\!\bigl(\mathbf{x} + \mathbf{a}\bigr), \quad
+    \mathbf{y} = \mathrm{LN}\!\bigl(\mathbf{h} + \mathrm{VQC}_{\mathrm{ffn}}(\mathbf{h})\bigr).
+\end{equation}
 
 \subsection{Fully Quantum Transformer VQC (FQT --- Route B)}
+\label{sec:fqt}
 
-FQT replaces the classical attention with a parameterized quantum circuit that computes query--key interactions via entangling gates.
-Both the attention mechanism and the feed-forward network are implemented as VQCs, making the entire transformer block quantum (except for measurement and re-encoding).
+FQT replaces the classical attention mechanism in QT with a fully quantum alternative.
 
-We also study a \textbf{+LayerNorm} variant that applies classical LayerNorm to the FQT outputs before the next layer, which our ablation shows is important for classification performance.
+\paragraph{Design hypothesis}
+While QT uses quantum circuits only for projection and FFN, FQT tests whether making the attention \emph{itself} quantum---via entangling gates that operate across tokens---yields richer inter-token correlations than classical dot-product attention.
+
+\paragraph{Stem encoding}
+The padded input first passes through $T$ independent 3-qubit VQCs (one per token) to produce initial quantum features.
+
+\paragraph{Quantum attention via transposed VQCs}
+Instead of computing Q/K/V projections and dot-product scores, FQT implements attention through a \emph{transpose-and-entangle} mechanism.
+The $T$ token embeddings, each of dimension~3, are arranged into a matrix $\mathbf{M} \in \mathbb{R}^{T \times 3}$ and transposed to $\mathbf{M}^\top \in \mathbb{R}^{3 \times T}$.
+Each of the 3~rows of $\mathbf{M}^\top$ is then fed into a $T$-qubit VQC with \texttt{StronglyEntanglingLayers}:
+\begin{equation}
+    \tilde{\mathbf{m}}_g = \mathrm{VQC}_{T}(\mathbf{M}^\top_{g,\,:};\, \theta_g), \quad g \in \{1,2,3\}.
+\end{equation}
+The outputs are stacked back into $\tilde{\mathbf{M}}^\top \in \mathbb{R}^{3 \times T}$ and transposed to recover the token dimension.
+
+This design allows the $T$-qubit entangling gates to create all-to-all correlations across tokens---the quantum analogue of the attention ``mixing'' operation.
+The key difference from QT is that inter-token interaction is mediated by \emph{quantum entanglement} rather than classical dot-product scores.
+
+\paragraph{Residual + optional LayerNorm + VQC FFN}
+Unlike QT, FQT uses \textbf{no LayerNorm by default}---residual connections are the only stabilization:
+\begin{equation}
+    \mathbf{h} = \mathbf{x} + \mathrm{QAttn}(\mathbf{x}), \quad
+    \mathbf{y} = \mathbf{h} + \mathrm{VQC}_{\mathrm{ffn}}(\mathbf{h}).
+\end{equation}
+We study a \textbf{+LayerNorm} variant that inserts classical LayerNorm after each sub-layer.
+As our ablation shows (\cref{sec:results-ablation}), this is important for classification.
+
+\paragraph{Readout}
+Both QT and FQT reduce token outputs via 3-qubit $3{\to}1$ VQCs (one per token), yielding $T$ scalar values.
+For regression, a final $T$-qubit VQC produces a single output; for classification, a linear head maps to class logits.
 
 \subsection{Noise Model}
 
@@ -344,6 +407,7 @@ For FQT, multi-head attention is even less beneficial---$H{=}2$ \emph{degrades} 
 These results suggest that multi-head quantum attention is not a reliable way to improve performance on small tabular datasets.
 
 \subsection{Architecture Ablation: Attention Is Not Always Helpful}
+\label{sec:results-ablation}
 
 \cref{tab:ablation} presents ablation experiments removing or modifying key architectural components.
 
