@@ -6,7 +6,8 @@
 # =================================================================
 set -e
 
-SEEDS=(42 123 7)
+# Seed 42 already has results from prior runs; only run new seeds.
+SEEDS=(123 7)
 
 CONFIGS=(
     configs/boston_multiseed.json
@@ -17,8 +18,8 @@ CONFIGS=(
 )
 
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║  Multi-seed experiment: 5 datasets × 3 seeds × 4 models ║"
-echo "║  Total runs: $(( ${#CONFIGS[@]} * ${#SEEDS[@]} ))                                        ║"
+echo "║  Multi-seed experiment: 5 datasets × 2 new seeds × 4 models ║"
+echo "║  Total runs: $(( ${#CONFIGS[@]} * ${#SEEDS[@]} ))  (seed 42 already done)                ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
 
