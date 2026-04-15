@@ -493,11 +493,35 @@ On regression tasks with moderate dimensionality, FC-VQCs can match or exceed st
 This parameter efficiency is the primary practical advantage of VQCs: on NISQ devices with limited qubit counts, a 720-parameter FC-VQC is far more deployable than a 13{,}000-parameter MLP.
 However, on classification tasks and larger datasets (CA Housing, $n{=}20{,}640$), gradient-boosted trees remain superior.
 
-\paragraph{The role of quantum attention}
+\paragraph{Why attention is redundant under FC-VQC connectivity}
+
 Perhaps our most surprising finding is that quantum self-attention does not reliably improve performance.
 The ablation in \cref{tab:ablation} shows that FQT \emph{without} attention achieves the highest $R^2$ on Boston Housing ($0.894$).
-We hypothesize two explanations: (i)~tabular datasets with ${\leq}$13 features may lack the structure that attention is designed to exploit; (ii)~the quantum attention mechanism introduces additional entangling layers whose gradients may interfere with the main VQC parameters.
-This is a valuable \emph{negative result}: practitioners should not default to transformer-style VQCs for tabular tasks.
+We argue this is not merely a data-scale artifact but a \emph{structural consequence} of the FC-VQC connectivity design.
+
+Recall that the Type~4 (fully-connected) FFN operates by stacking all $T$ token embeddings into a matrix $\mathbf{M} \in \mathbb{R}^{T \times 3}$, transposing it to $\mathbf{M}^\top \in \mathbb{R}^{3 \times T}$, and feeding each row into a 3-qubit VQC.
+After this operation, each output VQC has already seen information from \emph{every token}.
+This transpose-and-process step is precisely the same structural operation that FQT's quantum attention performs (\cref{sec:fqt})---except that the FFN version applies it with 3-qubit circuits (one per feature dimension) while FQT attention uses $T$-qubit circuits (one per feature dimension).
+
+In other words, \textbf{FC-VQC's Type~4 FFN already implements a form of all-to-all inter-token mixing} that is functionally equivalent to what attention is supposed to provide.
+Adding an explicit attention layer on top of this is redundant: the model must learn two successive mixing stages where one suffices.
+The extra parameters in the attention block ($3 \times T$ VQC parameter sets for Q/K/V in QT, or $3$ additional $T$-qubit VQCs in FQT) do not increase the representational capacity enough to justify the optimization burden they introduce.
+
+This analysis yields three concrete predictions, all confirmed by our experiments:
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Removing attention from FQT should not degrade---and may improve---performance} when the FFN already uses Type~4 connectivity.
+    This is confirmed: FQT$-$attn achieves $R^2{=}0.894$ on Boston vs.\ $0.799$ for default FQT (\cref{tab:ablation}).
+    \item \textbf{Switching from Type~4 to Type~3 (circular-shift) FFN should have a larger impact than removing attention}, because Type~3 eliminates all-to-all mixing entirely.
+    This is partially confirmed: FQT with Type~3 FFN ($0.885$) performs closer to FQT$-$attn ($0.894$) than to default FQT ($0.799$), suggesting that it is the \emph{FFN connectivity}, not attention, that drives performance.
+    \item \textbf{Multi-head attention should not help} when single-head already provides sufficient mixing on small token counts ($T \leq 5$).
+    This is confirmed: increasing $H$ from 1 to 3 yields inconsistent gains despite $2{\times}$--$3{\times}$ more parameters (\cref{tab:multihead}).
+\end{enumerate}
+
+\paragraph{When might quantum attention help?}
+Our negative result is specific to \emph{tabular data with few features} (${\leq}$13 dimensions, ${\leq}$5 tokens).
+In this regime, the token count is small enough that a single transpose operation achieves full mixing.
+Quantum attention may become beneficial when: (i)~the number of tokens $T$ is large enough that all-to-all FFN mixing becomes impractical or parameter-heavy; (ii)~the data has sequential or positional structure (e.g., time series) where \emph{selective} attention over certain positions outperforms uniform mixing; or (iii)~the feature interactions are sparse and data-dependent, requiring the input-adaptive gating that softmax attention provides.
+Testing these hypotheses on sequential and high-dimensional quantum tasks is a key direction for future work.
 
 \paragraph{Expressibility and depth selection}
 The saturation of expressibility at depth~${\approx}\,3$ has a direct practical implication: \textbf{there is no benefit to using VQC depths beyond 3} for the \texttt{StronglyEntanglingLayers} ansatz on 3-qubit circuits.
