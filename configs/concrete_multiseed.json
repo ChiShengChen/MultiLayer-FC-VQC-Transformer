@@ -3,7 +3,7 @@
   "task_type": "regression",
   "data": {
     "csv_path": "data/Concrete_Data.csv",
-    "target_column": "csMPa",
+    "target_column": "concrete_compressive_strength",
     "clip_percentile": 0.04
   },
   "models": [
