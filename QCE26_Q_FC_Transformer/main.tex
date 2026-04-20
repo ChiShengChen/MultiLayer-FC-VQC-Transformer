@@ -70,7 +70,8 @@ Our key findings are:
 \textbf{(i)}~FC-VQCs achieve competitive or superior regression accuracy to gradient-boosted trees with \emph{orders-of-magnitude fewer parameters} (e.g.\ $R^2{=}0.889$ on Boston Housing with only 720 parameters);
 \textbf{(ii)}~quantum self-attention provides no consistent benefit on small-scale tabular data---ablations show that removing attention can \emph{improve} performance;
 \textbf{(iii)}~expressibility saturates at circuit depth~${\approx}\,3$, explaining why shallow VQCs already cover the Hilbert space effectively;
-\textbf{(iv)}~LayerNorm on the fully quantum transformer improves classification accuracy, suggesting normalization is important when all operations are quantum.
+\textbf{(iv)}~LayerNorm on the fully quantum transformer improves classification accuracy, suggesting normalization is important when all operations are quantum;
+\textbf{(v)}~FQT degrades gracefully under depolarizing noise while QT collapses, and moderate noise can act as implicit regularization.
 These results provide practical architectural guidance for deploying VQCs on near-term quantum hardware.
 \end{abstract}
 
@@ -481,8 +482,37 @@ Linear proj. & 1.9098 \\
 \cref{tab:expressibility} and \cref{fig:expressibility} show that expressibility saturates at depth~$\approx\!3$, with KL divergence dropping from $0.20$ (depth~1) to $0.003$ (depth~3) and plateauing thereafter.
 The classical linear projection baseline is roughly three orders of magnitude less expressive ($\mathrm{KL}{=}1.91$), confirming that even shallow VQC layers access a significantly richer region of Hilbert space.
 
-% \subsection{Noise Robustness}
-% TODO: Add noise results after experiments complete.
+\subsection{Noise Robustness}
+\label{sec:results-noise}
+
+\cref{tab:noise} reports model accuracy on Boston Housing under single-qubit depolarizing noise at varying strengths.
+
+\begin{table}[t]
+\centering
+\caption{Noise robustness on Boston Housing (test $R^2$). Depolarizing noise $p_d$ applied after every \texttt{StronglyEntanglingLayers} layer. Noiseless baseline from \cref{tab:main-regression}.}
+\label{tab:noise}
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Model & noiseless & $p_d{=}.001$ & $p_d{=}.005$ & $p_d{=}.01$ & $p_d{=}.05$ \\
+\midrule
+QT  & .781 & .779 & .796 & \textbf{.842} & $-$4.04 \\
+FQT & .799 & \textbf{.855} & \textbf{.898} & .861 & .765 \\
+\bottomrule
+\end{tabular}
+\vspace{-5pt}
+\end{table}
+
+Two findings stand out.
+First, \textbf{FQT is substantially more noise-robust than QT}.
+FQT maintains $R^2 > 0.76$ even at $p_d{=}0.05$, while QT collapses completely ($R^2{=}{-}4.04$).
+This is likely because FQT uses fewer total qubits per attention operation (3-qubit blocks in the FFN) compared to QT's per-token VQC projections for Q/K/V, making it less susceptible to accumulated gate errors.
+
+Second, and surprisingly, \textbf{moderate noise can improve performance}: FQT achieves $R^2{=}0.898$ at $p_d{=}0.005$, higher than its noiseless baseline ($0.799$).
+This suggests that depolarizing noise acts as a form of implicit regularization, analogous to dropout in classical networks, preventing overfitting in the small-data regime ($n{=}506$).
+
+QT's catastrophic failure at $p_d{=}0.05$ ($R^2{=}{-}4.04$) stems from NaN divergence during training (early-stopped at epoch~9), indicating that the classical attention's softmax operation amplifies noise-corrupted VQC outputs.
+FQT avoids this because its quantum attention operates via entangling gates that are inherently bounded in output range.
 
 %===================================================================
 \section{Discussion}
@@ -527,11 +557,16 @@ Testing these hypotheses on sequential and high-dimensional quantum tasks is a k
 The saturation of expressibility at depth~${\approx}\,3$ has a direct practical implication: \textbf{there is no benefit to using VQC depths beyond 3} for the \texttt{StronglyEntanglingLayers} ansatz on 3-qubit circuits.
 This is consistent with the parameter efficiency of FC-VQCs: even with shallow individual blocks, the multi-layer fully-connected topology provides sufficient expressiveness through inter-block connectivity rather than intra-block depth.
 
+\paragraph{Noise as implicit regularization}
+The noise robustness results (\cref{tab:noise}) reveal that moderate depolarizing noise ($p_d{=}0.005$) can \emph{improve} FQT performance beyond its noiseless baseline.
+This regularization effect is consistent with the small training set size ($n{=}506$) and suggests that VQCs on NISQ hardware may benefit from---rather than be harmed by---realistic noise levels, provided the architecture avoids classical amplification bottlenecks (e.g., softmax on noisy inputs).
+
 \paragraph{Practical recommendations}
-Based on our findings: (i)~\textbf{default to FC-VQC} with depth-3 blocks for tabular regression; (ii)~use \textbf{ResNet-VQC} when training stability is needed; (iii)~\textbf{avoid multi-head quantum attention} on small tabular data; (iv)~add \textbf{LayerNorm to FQT} for classification tasks.
+Based on our findings: (i)~\textbf{default to FC-VQC} with depth-3 blocks for tabular regression; (ii)~use \textbf{ResNet-VQC} when training stability is needed; (iii)~\textbf{avoid multi-head quantum attention} on small tabular data; (iv)~add \textbf{LayerNorm to FQT} for classification tasks; (v)~\textbf{prefer FQT over QT} if deploying on noisy hardware, as it degrades gracefully.
 
 \paragraph{Limitations}
 All experiments use quantum circuit simulation; behavior on real hardware may differ.
+Noise experiments are conducted on one dataset (Boston Housing); broader noise studies are left to future work.
 The datasets are small to moderate ($n \leq 20{,}640$) with low feature dimensionality (${\leq}$13).
 Larger, higher-dimensional datasets may favor different architectures.
 Our VQCs use at most 3 qubits per block; scaling to larger qubit counts could change the relative merits.
@@ -542,12 +577,13 @@ Our VQCs use at most 3 qubits per block; scaling to larger qubit counts could ch
 
 We presented a systematic comparison of four VQC architectures---FC-VQC, ResNet-VQC, QT, and FQT---on five tabular benchmarks.
 Our central finding is that \textbf{simpler is better}: multi-layer FC-VQCs achieve the strongest accuracy-to-parameter ratio, matching gradient-boosted trees on regression tasks with ${\sim}$700 parameters.
-Quantum self-attention, despite its conceptual appeal, does not consistently improve performance on small tabular data and can even hurt it.
+Quantum self-attention, despite its conceptual appeal, does not consistently improve performance on small tabular data and can even hurt it---a structural consequence of the Type~4 FFN already providing all-to-all token mixing.
 Expressibility analysis confirms that shallow circuits (depth~${\approx}\,3$) already saturate the accessible Hilbert space, explaining why deep or complex architectures provide diminishing returns.
+Noise experiments reveal that FQT degrades gracefully under depolarizing noise while QT collapses, and that moderate noise can act as implicit regularization.
 
-These results provide actionable guidance for the quantum ML community: FC-VQCs should be the default architecture for tabular tasks on near-term hardware, with ResNet-VQC as a robust alternative.
+These results provide actionable guidance for the quantum ML community: FC-VQCs should be the default architecture for tabular tasks on near-term hardware, with ResNet-VQC as a robust alternative and FQT preferred over QT when hardware noise is a concern.
 Transformer-style VQCs may find their niche on structured, sequential, or high-dimensional data where attention mechanisms have proven beneficial in the classical setting, but this remains a direction for future work.
-Future directions include validation on real quantum hardware, scaling to larger qubit counts, and exploring quantum attention on sequential tasks where the inductive bias of self-attention may be better matched to the data structure.
+Future directions include validation on real quantum hardware, broader noise studies across datasets, and exploring quantum attention on sequential tasks where the inductive bias of self-attention may be better matched to the data structure.
 
 %===================================================================
 \ifarxiv
