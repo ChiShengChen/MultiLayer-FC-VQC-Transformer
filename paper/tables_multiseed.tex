@@ -1,0 +1,38 @@
+% Auto-generated multi-seed results (mean ± std)
+
+% Regression: Test $R^2$ (mean ± std)
+\begin{table}[t]
+\centering
+\caption{Test $R^2$ across multiple random seeds (mean $\pm$ std). Best mean per column in \textbf{bold}.}
+\label{tab:multiseed-regression}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Model & Boston & CA Hous. & Concrete & \#params \\
+\midrule
+FC-VQC & $\mathbf{0.889} \pm 0.000$$^{1}$ & $0.752 \pm 0.000$$^{1}$ & $0.756 \pm 0.000$$^{1}$ & 720 \\
+ResNet-VQC & $0.831 \pm 0.000$$^{1}$ & $0.785 \pm 0.000$$^{1}$ & $\mathbf{0.858} \pm 0.000$$^{1}$ & 720 \\
+QT & $0.781 \pm 0.000$$^{1}$ & $\mathbf{0.807} \pm 0.000$$^{1}$ & $0.838 \pm 0.000$$^{1}$ & 1380 \\
+FQT & $0.799 \pm 0.000$$^{1}$ & $0.786 \pm 0.000$$^{1}$ & $0.792 \pm 0.000$$^{1}$ & 855 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Classification: Test $\text{Accuracy}$ (mean ± std)
+\begin{table}[t]
+\centering
+\caption{Test $\text{Accuracy}$ across multiple random seeds (mean $\pm$ std). Best mean per column in \textbf{bold}.}
+\label{tab:multiseed-classification}
+\small
+\begin{tabular}{lrrr}
+\toprule
+Model & Wine-R & Wine-RW & \#params \\
+\midrule
+FC-VQC & $0.596 \pm 0.000$$^{1}$ & $0.585 \pm 0.000$$^{1}$ & 612 \\
+ResNet-VQC & $\mathbf{0.608} \pm 0.000$$^{1}$ & $0.579 \pm 0.000$$^{1}$ & 570 \\
+QT & $0.588 \pm 0.000$$^{1}$ & $0.587 \pm 0.000$$^{1}$ & 1098 \\
+FQT & $\mathbf{0.608} \pm 0.000$$^{1}$ & $\mathbf{0.592} \pm 0.000$$^{1}$ & 678 \\
+\bottomrule
+\end{tabular}
+\end{table}
+

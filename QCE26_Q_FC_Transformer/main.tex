@@ -52,7 +52,7 @@ on Tabular Benchmarks}
 
 \author{
 \IEEEauthorblockN{Chi-Sheng Chen}
-\IEEEauthorblockA{\textit{Beth Israel Deacones Medical Center} \\
+\IEEEauthorblockA{\textit{Beth Israel Deaconess Medical Center} \\
 \textit{\& Harvard Medical School}\\
 Boston, MA, USA \\
 m50816m50816@gmail.com}
@@ -276,7 +276,7 @@ We evaluate on five tabular benchmarks spanning regression and classification (\
 \toprule
 Dataset & Task & $n$ & Features & Target \\
 \midrule
-Boston Housing & regression & 506 & 13 & MEDV \\
+Boston Housing\footnote{We acknowledge that the Boston Housing dataset has been deprecated from scikit-learn due to ethical concerns regarding one of its features. We include it for comparability with prior VQC studies but note that our conclusions are supported by the remaining four datasets.} & regression & 506 & 13 & MEDV \\
 CA Housing & regression & 20{,}640 & 8 & MedHouseVal \\
 Concrete & regression & 1{,}030 & 8 & strength \\
 Wine (Red) & classification & 1{,}599 & 11 & quality \\
@@ -489,8 +489,8 @@ Linear proj. & 1.9098 \\
 \vspace{-15pt}
 \end{figure}
 
-\cref{tab:expressibility} and \cref{fig:expressibility} show that expressibility saturates at depth~$\approx\!3$, with KL divergence dropping from $0.20$ (depth~1) to $0.003$ (depth~3) and plateauing thereafter.
-The classical linear projection baseline is roughly three orders of magnitude less expressive ($\mathrm{KL}{=}1.91$), confirming that even shallow VQC layers access a significantly richer region of Hilbert space.
+\cref{tab:expressibility} and \cref{fig:expressibility} show that expressibility saturates at depth~$\approx\!3$, with KL divergence dropping from $0.20$ (depth~1) to $0.0027$ (depth~3) and plateauing thereafter.
+The classical linear projection baseline is roughly three orders of magnitude less expressive ($\mathrm{KL}{=}1.91$), confirming that even shallow VQC layers access a significantly richer region of Hilbert space.\footnote{The ratio $1.91/0.0027 \approx 700\times$ justifies ``three orders of magnitude'' for expressibility; the parameter-count comparison (720 vs.\ 13{,}000, $\approx\!18\times$) is roughly one order of magnitude.}
 
 \subsection{Noise Robustness}
 \label{sec:results-noise}
@@ -530,7 +530,7 @@ FQT avoids this because its quantum attention operates via entangling gates that
 \label{sec:discussion}
 
 \paragraph{When are VQCs competitive?}
-On regression tasks with moderate dimensionality, FC-VQCs can match or exceed strong classical baselines \emph{while using orders of magnitude fewer parameters}.
+On regression tasks with moderate dimensionality, FC-VQCs can match or exceed strong classical baselines \emph{while using an order of magnitude fewer parameters}.
 This parameter efficiency is the primary practical advantage of VQCs: on NISQ devices with limited qubit counts, a 720-parameter FC-VQC is far more deployable than a 13{,}000-parameter MLP.
 However, on classification tasks and larger datasets (CA Housing, $n{=}20{,}640$), gradient-boosted trees remain superior.
 

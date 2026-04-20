@@ -1,0 +1,31 @@
+{
+  "experiment": "BostonHousing",
+  "task_type": "regression",
+  "data": {
+    "csv_path": "data/boston_housing.csv",
+    "target_column": "MEDV",
+    "clip_percentile": 0.04
+  },
+  "models": [
+    {
+      "name": "MLPRegressor_ParamMatch",
+      "module": "models",
+      "hidden_layers": 2,
+      "target_params": 720,
+      "dropout": 0.0
+    }
+  ],
+  "training": {
+    "lr": 0.005,
+    "weight_decay": 0.0,
+    "use_scheduler": false,
+    "epochs": 10000,
+    "print_every": 100,
+    "eval_interval": 100
+  },
+  "batch_size": {
+    "train": null,
+    "val": null,
+    "test": null
+  }
+}
