@@ -335,6 +335,7 @@ SVR (RBF) & 0.548 & 0.788 & 0.608 & -- \\
 Ridge & 0.666 & 0.644 & 0.605 & -- \\
 \midrule
 MLP$_{\text{PM}}$ & 0.769 & 0.793 & 0.843 & 218 \\
+MLP$_{\text{720}}$ & 0.758 & -- & -- & 721 \\
 \midrule
 FC-VQC$_{15\mathrm{t}5\mathrm{t}1}$ & \textbf{0.889} & -- & -- & 720 \\
 FC-VQC$_{8\mathrm{t}3\mathrm{t}1}$ & -- & 0.752 & 0.756 & 486 \\
@@ -376,7 +377,9 @@ FQT ($H{=}1$) & .608 & .293 & .592 & .294 & 678 \\
 On regression tasks, the most striking finding is the \textbf{parameter efficiency of FC-VQCs}.
 On Boston Housing ($n{=}506$), FC-VQC$_{15\mathrm{t}5\mathrm{t}1}$ achieves $R^2{=}0.889$ with only 720 parameters, outperforming both XGBoost ($0.856$) and CatBoost ($0.861$).
 On the larger CA Housing ($n{=}20{,}640$) and Concrete ($n{=}1{,}030$) datasets, FC-VQCs trail gradient-boosted trees ($R^2{=}0.752$ vs.\ CatBoost's $0.857$ on CA Housing; $0.756$ vs.\ $0.933$ on Concrete), indicating that the parameter advantage narrows as dataset size grows and tree-based methods can leverage more data.
-Across all datasets, FC-VQCs consistently outperform parameter-matched MLPs ($R^2{=}0.769$ on Boston with 218 parameters), confirming that quantum circuits provide genuine representational benefit beyond mere parameter count.
+To control for parameter count, we also train an MLP with 721 parameters (MLP$_{720}$), matching FC-VQC exactly.
+This MLP achieves only $R^2{=}0.758$ on Boston---\emph{lower} than the 218-parameter MLP ($0.769$)---indicating that simply adding parameters to a classical network causes overfitting at this dataset size.
+In contrast, FC-VQC uses the same 720 parameters to reach $R^2{=}0.889$, confirming that the quantum circuit's inductive bias provides genuine representational benefit that classical networks cannot match at equal capacity.
 
 Quantum Transformer variants (QT, FQT) achieve respectable scores on CA~Housing ($R^2{\leq}0.814$) and Concrete ($R^2{\leq}0.869$), but at significantly higher parameter counts (1{,}098--4{,}350) than FC-VQCs (486--720), and they do not consistently outperform the simpler architectures.
 ResNet-VQC provides a reliable middle ground: competitive accuracy with the same parameter budget as FC-VQC.
