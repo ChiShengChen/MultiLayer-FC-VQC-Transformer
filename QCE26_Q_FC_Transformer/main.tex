@@ -124,8 +124,11 @@ This metric has become a standard tool for comparing ansatz designs.
 We use it to characterize the depth at which our VQC blocks saturate.
 
 \paragraph{Quantum transformers}
-Several recent works have explored quantum analogues of the transformer architecture, ranging from quantum self-attention mechanisms operating on amplitude-encoded data to fully quantum multi-head attention with parameterized entangling gates.
-Our work differs in providing a controlled comparison against simpler VQC baselines (FC-VQC, ResNet-VQC) on identical benchmarks, rather than proposing a new transformer variant in isolation.
+Several recent works have explored quantum analogues of the transformer architecture.
+Li et al.~\cite{li2022quantum_selfattn} introduced a quantum self-attention neural network using Gaussian-projected quantum kernels for text classification.
+Cherrat et al.~\cite{cherrat2024quantum_vit} proposed quantum vision transformers with quantum orthogonal layers for image tasks.
+A comprehensive survey by Zhang et al.~\cite{zhang2025survey_qtransformer} categorizes existing approaches into PQC-based and linear-algebra-based quantum transformers.
+Our work differs from these in providing a controlled comparison against simpler VQC baselines (FC-VQC, ResNet-VQC) on identical benchmarks, rather than proposing a new transformer variant in isolation.
 
 \paragraph{Residual connections in quantum circuits}
 Classical residual networks~\cite{he2016deep} inspired several proposals for skip connections in VQCs, either by adding classical residual paths around quantum blocks or by using identity-initialized parameterized layers.
