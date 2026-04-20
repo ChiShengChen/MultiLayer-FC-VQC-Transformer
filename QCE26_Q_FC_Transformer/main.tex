@@ -527,19 +527,50 @@ On regression tasks with moderate dimensionality, FC-VQCs can match or exceed st
 This parameter efficiency is the primary practical advantage of VQCs: on NISQ devices with limited qubit counts, a 720-parameter FC-VQC is far more deployable than a 13{,}000-parameter MLP.
 However, on classification tasks and larger datasets (CA Housing, $n{=}20{,}640$), gradient-boosted trees remain superior.
 
-\paragraph{Why attention is redundant under FC-VQC connectivity}
+\paragraph{FC-VQC as implicit uniform attention}
 
 Perhaps our most surprising finding is that quantum self-attention does not reliably improve performance.
 The ablation in \cref{tab:ablation} shows that FQT \emph{without} attention achieves the highest $R^2$ on Boston Housing ($0.894$).
-We argue this is not merely a data-scale artifact but a \emph{structural consequence} of the FC-VQC connectivity design.
+We argue this is not merely a data-scale artifact but a \emph{structural consequence}: the Type~4 FFN already implements a form of attention.
 
-Recall that the Type~4 (fully-connected) FFN operates by stacking all $T$ token embeddings into a matrix $\mathbf{M} \in \mathbb{R}^{T \times 3}$, transposing it to $\mathbf{M}^\top \in \mathbb{R}^{3 \times T}$, and feeding each row into a 3-qubit VQC.
-After this operation, each output VQC has already seen information from \emph{every token}.
-This transpose-and-process step is precisely the same structural operation that FQT's quantum attention performs (\cref{sec:fqt})---except that the FFN version applies it with 3-qubit circuits (one per feature dimension) while FQT attention uses $T$-qubit circuits (one per feature dimension).
+To see this, consider the classical self-attention output for token $i$:
+\begin{equation}
+    \mathbf{o}_i = \sum_{j=1}^{T} \alpha_{ij}\, \mathbf{v}_j, \quad
+    \alpha_{ij} = \frac{\exp(\mathbf{q}_i \!\cdot\! \mathbf{k}_j / \sqrt{d})}
+    {\sum_{j'} \exp(\mathbf{q}_i \!\cdot\! \mathbf{k}_{j'} / \sqrt{d})}.
+    \label{eq:classical-attn}
+\end{equation}
+The weights $\alpha_{ij}$ are data-dependent and input-adaptive.
+Now consider what Type~4 FFN does.
+It stacks the $T$ token embeddings $\mathbf{m}_1, \dots, \mathbf{m}_T \in \mathbb{R}^3$ into a matrix $\mathbf{M} \in \mathbb{R}^{T \times 3}$, transposes to $\mathbf{M}^\top \in \mathbb{R}^{3 \times T}$, and re-chunks into $T$ groups of~3.
+The $i$-th output group receives:
+\begin{equation}
+    \tilde{\mathbf{m}}_i = \bigl[
+        (\mathbf{M}^\top)_{1,\, \pi(i,1)},\;
+        (\mathbf{M}^\top)_{2,\, \pi(i,2)},\;
+        (\mathbf{M}^\top)_{3,\, \pi(i,3)}
+    \bigr],
+    \label{eq:type4-mixing}
+\end{equation}
+where $\pi$ is the deterministic index mapping from the transpose-and-flatten operation.
+Crucially, each $\tilde{\mathbf{m}}_i$ contains exactly one element from each of $T$ different tokens.
+This is equivalent to applying \cref{eq:classical-attn} with \textbf{uniform attention weights} $\alpha_{ij} = 1/T$, followed by a nonlinear VQC transformation $f_\theta$:
+\begin{equation}
+    \mathbf{o}_i^{\text{FC}} = f_\theta\!\left(\frac{1}{T}\sum_{j=1}^{T} \mathbf{P}_{ij}\, \mathbf{m}_j\right),
+    \label{eq:fc-as-attn}
+\end{equation}
+where $\mathbf{P}_{ij}$ is a fixed permutation matrix selecting one feature dimension per token, and $f_\theta$ is the parameterized VQC.
 
-In other words, \textbf{FC-VQC's Type~4 FFN already implements a form of all-to-all inter-token mixing} that is functionally equivalent to what attention is supposed to provide.
-Adding an explicit attention layer on top of this is redundant: the model must learn two successive mixing stages where one suffices.
-The extra parameters in the attention block ($3 \times T$ VQC parameter sets for Q/K/V in QT, or $3$ additional $T$-qubit VQCs in FQT) do not increase the representational capacity enough to justify the optimization burden they introduce.
+The key difference between \cref{eq:fc-as-attn} and \cref{eq:classical-attn} is:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Classical attention}: data-dependent weights $\alpha_{ij}$ + linear value projection.
+    \item \textbf{FC-VQC Type~4}: uniform weights (fixed permutation) + \emph{nonlinear} VQC processing.
+\end{itemize}
+The VQC's nonlinearity compensates for the lack of data-dependent weighting: while attention \emph{selects} which tokens to mix, the VQC \emph{learns a nonlinear function} over the mixed representation.
+When $T$ is small (${\leq}5$ in our experiments), the selection mechanism provides negligible benefit because the VQC can process all tokens simultaneously.
+In this regime, \textbf{FC-VQC is a uniform-attention transformer where the VQC replaces softmax selection with learned nonlinear mixing}.
+
+This perspective explains why adding explicit attention on top of Type~4 FFN is redundant---the model already performs attention-like all-to-all token mixing, and stacking a second mixing stage only adds parameters without representational benefit.
 
 This analysis yields three concrete predictions, all confirmed by our experiments:
 \begin{enumerate}[leftmargin=*]
