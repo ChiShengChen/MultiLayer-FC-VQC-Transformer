@@ -69,7 +69,7 @@ h.su24@imperial.ac.uk}}
 Variational quantum circuits (VQCs) are a leading approach to quantum machine learning on near-term devices, yet it remains unclear which circuit architecture yields the best accuracy--parameter trade-off on classical tabular data.
 We present a systematic empirical comparison of four VQC families---multi-layer fully-connected (FC-VQC), residual (ResNet-VQC), hybrid quantum--classical transformer (QT), and fully quantum transformer (FQT)---across five regression and classification benchmarks.
 Our key findings are:
-\textbf{(i)}~FC-VQCs achieve 90--96\% of the $R^2$ of attention-based VQCs while using 40--50\% fewer parameters, and consistently outperform equal-capacity MLPs (mean $R^2{=}0.829$ vs.\ MLP$_{720}$'s $0.758$ on Boston Housing, 3-seed average);
+\textbf{(i)}~FC-VQCs achieve 90--96\% of the $R^2$ of attention-based VQCs while using 40--50\% fewer parameters, and consistently outperform equal-capacity MLPs (mean $R^2{=}0.829$ vs.\ MLP$_{720}$'s $0.753$ on Boston Housing, 3-seed average);
 \textbf{(ii)}~FC-VQC's Type~4 inter-block connectivity provides partial cross-token mixing that approximates the role of attention---explicit quantum self-attention yields only marginal gains on most datasets while significantly increasing parameter count;
 \textbf{(iii)}~expressibility saturates at circuit depth~${\approx}\,3$, explaining why shallow VQCs already cover the Hilbert space effectively;
 \textbf{(iv)}~LayerNorm on the fully quantum transformer improves classification accuracy, suggesting normalization is important when all operations are quantum;
@@ -336,7 +336,7 @@ KRR (RBF) & $.576{\scriptstyle\pm.170}$ & $.773{\scriptstyle\pm.012}$ & $.773{\s
 SVR (RBF) & $.547{\scriptstyle\pm.078}$ & $.777{\scriptstyle\pm.010}$ & $.621{\scriptstyle\pm.015}$ & ${\sim}$3.5K \\
 \midrule
 MLP$_{\text{PM}}$ & $.696{\scriptstyle\pm.105}$ & $.779{\scriptstyle\pm.006}$ & $.868{\scriptstyle\pm.013}$ & 218 \\
-MLP$_{720}$ & .758 & .812 & .866 & 721--727 \\
+MLP$_{720}$ & $.753{\scriptstyle\pm.039}$ & $.800{\scriptstyle\pm.009}$ & $.867{\scriptstyle\pm.018}$ & 721--727 \\
 \midrule
 FC-VQC & $.829{\scriptstyle\pm.042}$ & $.750{\scriptstyle\pm.001}$ & $.774{\scriptstyle\pm.021}$ & 486--720 \\
 ResNet & $.775{\scriptstyle\pm.040}$ & $.783{\scriptstyle\pm.004}$ & $.819{\scriptstyle\pm.028}$ & 486--720 \\
@@ -373,8 +373,8 @@ FQT & $.606{\scriptstyle\pm.017}$ & $.565{\scriptstyle\pm.019}$ & 678 \\
 
 On regression (\cref{tab:main-regression}), the most striking finding is the \textbf{parameter efficiency of FC-VQCs}.
 FC-VQC achieves a 3-seed mean $R^2{=}0.829$ on Boston Housing with only 720 parameters.
-While this trails CatBoost ($0.861$) and XGBoost ($0.856$), it substantially outperforms MLP$_{720}$ ($R^2{=}0.758$)---an MLP with the same parameter count---confirming that VQC's inductive bias provides genuine representational benefit beyond mere parameter count.
-On CA Housing and Concrete, MLP$_{720}$ achieves $R^2{=}0.812$ and $0.866$, outperforming FC-VQC ($0.750$, $0.774$) but trailing QT ($0.807$, $0.853$).
+While this trails CatBoost ($0.861$) and XGBoost ($0.856$), it substantially outperforms MLP$_{720}$ ($R^2{=}0.753 \pm 0.039$)---an MLP with the same parameter count---confirming that VQC's inductive bias provides genuine representational benefit beyond mere parameter count.
+On CA Housing and Concrete, MLP$_{720}$ achieves mean $R^2{=}0.800$ and $0.867$, outperforming FC-VQC ($0.750$, $0.774$) but trailing QT ($0.807$, $0.853$).
 This indicates that the VQC inductive bias advantage is strongest on the smallest dataset ($n{=}506$) and diminishes as data grows---at larger scales, classical MLPs with sufficient parameters catch up.
 
 QT achieves the highest mean $R^2$ on CA Housing ($0.807$) and Concrete ($0.853$), but at $2{\times}$--$3{\times}$ the parameter count of FC-VQC.
@@ -627,7 +627,7 @@ Our VQCs use at most 3 qubits per block; scaling to larger qubit counts could ch
 
 We presented a systematic comparison of four VQC architectures---FC-VQC, ResNet-VQC, QT, and FQT---on five tabular benchmarks, validated across three random seeds.
 Our central finding concerns the \textbf{parameter-efficiency trade-off of attention}: FC-VQC's Type~4 inter-block connectivity provides partial cross-token mixing that, combined with VQC nonlinearity, achieves 90--96\% of the $R^2$ of attention-based VQCs at 40--50\% fewer parameters.
-FC-VQCs consistently outperform equal-capacity MLPs (mean $R^2{=}0.829$ vs.\ $0.758$ on Boston with ${\sim}$720 parameters), confirming a genuine VQC inductive bias advantage.
+FC-VQCs consistently outperform equal-capacity MLPs (mean $R^2{=}0.829$ vs.\ $0.753$ on Boston with ${\sim}$720 parameters), confirming a genuine VQC inductive bias advantage.
 All quantum models trail gradient-boosted trees on larger datasets, suggesting that VQC's strength lies in parameter-efficient learning in the low-data regime most relevant to near-term hardware.
 
 Additional findings reinforce the practical value of simpler architectures: expressibility saturates at depth~${\approx}\,3$; FQT degrades gracefully under depolarizing noise while QT collapses due to softmax amplification.
