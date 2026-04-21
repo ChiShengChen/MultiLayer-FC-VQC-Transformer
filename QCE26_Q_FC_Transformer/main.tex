@@ -377,11 +377,30 @@ On CA Housing and Concrete, MLP$_{720}$ achieves $R^2{=}0.812$ and $0.866$, outp
 This indicates that the VQC inductive bias advantage is strongest on the smallest dataset ($n{=}506$) and diminishes as data grows---at larger scales, classical MLPs with sufficient parameters catch up.
 
 QT achieves the highest mean $R^2$ on CA Housing ($0.807$) and Concrete ($0.853$), but at $2{\times}$--$3{\times}$ the parameter count of FC-VQC.
-FC-VQC reaches 90--96\% of QT's accuracy with 40--50\% fewer parameters---a trade-off that favors FC-VQC on parameter-constrained NISQ hardware.
+FC-VQC reaches 90--96\% of QT's accuracy with 40--50\% fewer parameters---a trade-off that favors FC-VQC on parameter-constrained NISQ hardware (\cref{fig:pareto}).
 ResNet-VQC provides a reliable middle ground: competitive accuracy with the same parameter budget as FC-VQC.
+\cref{fig:training-curves} shows that FC-VQC converges fastest on Boston Housing, while QT and FQT exhibit higher variance across seeds.
 
 On classification (\cref{tab:main-classification}), all quantum models trail tree-based methods by 7--13\% in accuracy, consistent with the known strength of gradient-boosted ensembles on tabular data.
 Among quantum models, FQT achieves the highest mean accuracy on Wine Red ($0.606 \pm 0.017$).
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/pareto_r2_vs_params.png}
+\vspace{-15pt}
+\caption{Parameter efficiency across three regression datasets. Each point is a model; $x$-axis is parameter count (log scale), $y$-axis is 3-seed mean test $R^2$. VQCs (blue circles) achieve competitive accuracy with far fewer parameters than tree-based methods (red diamonds), while MLPs (green squares) at equal capacity (MLP-720) underperform FC-VQC on Boston but catch up on larger datasets.}
+\label{fig:pareto}
+\vspace{-10pt}
+\end{figure*}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/boston_training_curves.png}
+\vspace{-20pt}
+\caption{Training and validation loss curves on Boston Housing (3-seed mean $\pm$ std shading). FC-VQC converges fastest; QT and FQT show higher variance across seeds.}
+\label{fig:training-curves}
+\vspace{-15pt}
+\end{figure}
 
 \subsection{Multi-Head Attention Scaling}
 
