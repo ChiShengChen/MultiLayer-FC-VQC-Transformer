@@ -323,17 +323,17 @@ All quantum model results are 3-seed averages (mean $\pm$ std); classical baseli
 
 \begin{table}[t]
 \centering
-\caption{Test $R^2$ on regression datasets. All results: 3-seed mean $\pm$ std. Best overall mean per column in \textbf{bold}. MLP$_{720}$ matches FC-VQC's parameter count. FC-VQC uses dataset-specific qubit layouts ($15\mathrm{t}5\mathrm{t}1$ for Boston's 13 features; $8\mathrm{t}3\mathrm{t}1$ for 8-feature datasets).}
+\caption{Test $R^2$ on regression datasets. All results: 3-seed mean $\pm$ std. Best overall mean per column in \textbf{bold}. Tree-based \#params estimated as leaf values + split parameters (500 trees, depth 6).\footnotemark{} $n_{\text{tr}}$: dual coefficients scale with training set size. FC-VQC uses dataset-specific qubit layouts.}
 \label{tab:main-regression}
 \small
 \begin{tabular}{lrrrr}
 \toprule
 Model & Boston & CA Hous. & Concrete & \#p \\
 \midrule
-CatBoost & $\mathbf{.862}{\scriptstyle\pm.008}$ & $\mathbf{.854}{\scriptstyle\pm.005}$ & $\mathbf{.931}{\scriptstyle\pm.018}$ & -- \\
-XGBoost & $.845{\scriptstyle\pm.013}$ & $.850{\scriptstyle\pm.002}$ & $.914{\scriptstyle\pm.016}$ & -- \\
-KRR (RBF) & $.576{\scriptstyle\pm.170}$ & $.773{\scriptstyle\pm.012}$ & $.773{\scriptstyle\pm.005}$ & -- \\
-SVR (RBF) & $.547{\scriptstyle\pm.078}$ & $.777{\scriptstyle\pm.010}$ & $.621{\scriptstyle\pm.015}$ & -- \\
+CatBoost & $\mathbf{.862}{\scriptstyle\pm.008}$ & $\mathbf{.854}{\scriptstyle\pm.005}$ & $\mathbf{.931}{\scriptstyle\pm.018}$ & ${\sim}$35K \\
+XGBoost & $.845{\scriptstyle\pm.013}$ & $.850{\scriptstyle\pm.002}$ & $.914{\scriptstyle\pm.016}$ & ${\sim}$95K \\
+KRR (RBF) & $.576{\scriptstyle\pm.170}$ & $.773{\scriptstyle\pm.012}$ & $.773{\scriptstyle\pm.005}$ & $n_{\text{tr}}$ \\
+SVR (RBF) & $.547{\scriptstyle\pm.078}$ & $.777{\scriptstyle\pm.010}$ & $.621{\scriptstyle\pm.015}$ & ${\sim}$3.5K \\
 \midrule
 MLP$_{\text{PM}}$ & $.696{\scriptstyle\pm.105}$ & $.779{\scriptstyle\pm.006}$ & $.868{\scriptstyle\pm.013}$ & 218 \\
 MLP$_{720}$ & .758 & .812 & .866 & 721--727 \\
@@ -346,6 +346,7 @@ FQT & $.705{\scriptstyle\pm.078}$ & $.794{\scriptstyle\pm.007}$ & $.780{\scripts
 \end{tabular}
 \vspace{-5pt}
 \end{table}
+\footnotetext{XGBoost: $500 \times (2^6 \text{ leaves} + 63 \text{ splits} \times 2) \approx 95\text{K}$. CatBoost uses oblivious trees: $500 \times (2^6 + 6) \approx 35\text{K}$. These are upper bounds; actual counts may be lower with early stopping or pruning.}
 
 \begin{table}[t]
 \centering
@@ -356,8 +357,8 @@ FQT & $.705{\scriptstyle\pm.078}$ & $.794{\scriptstyle\pm.007}$ & $.780{\scripts
 \toprule
 Model & Wine (Red) & Wine (R+W) & \#p \\
 \midrule
-CatBoost & $\mathbf{.678}{\scriptstyle\pm.017}$ & $.649{\scriptstyle\pm.012}$ & -- \\
-XGBoost & $.664{\scriptstyle\pm.019}$ & $\mathbf{.667}{\scriptstyle\pm.020}$ & -- \\
+CatBoost & $\mathbf{.678}{\scriptstyle\pm.017}$ & $.649{\scriptstyle\pm.012}$ & ${\sim}$35K \\
+XGBoost & $.664{\scriptstyle\pm.019}$ & $\mathbf{.667}{\scriptstyle\pm.020}$ & ${\sim}$95K \\
 \midrule
 MLP$_{\text{PM}}$ & $.614{\scriptstyle\pm.015}$ & $.557{\scriptstyle\pm.016}$ & 198 \\
 \midrule
