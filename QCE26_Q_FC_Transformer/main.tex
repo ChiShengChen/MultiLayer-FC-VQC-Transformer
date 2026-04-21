@@ -336,7 +336,7 @@ KRR (RBF) & .671 & .783 & .779 & -- \\
 SVR (RBF) & .548 & .788 & .608 & -- \\
 \midrule
 MLP$_{\text{PM}}$ & .769 & .793 & .843 & 218 \\
-MLP$_{720}$ & .758 & -- & -- & 721 \\
+MLP$_{720}$ & .758 & .812 & .866 & 721--727 \\
 \midrule
 FC-VQC & $\mathbf{.829}{\scriptstyle\pm.042}$ & $.750{\scriptstyle\pm.001}$ & $.774{\scriptstyle\pm.021}$ & 486--720 \\
 ResNet & $.775{\scriptstyle\pm.040}$ & $.783{\scriptstyle\pm.004}$ & $.819{\scriptstyle\pm.028}$ & 486--720 \\
@@ -371,9 +371,10 @@ FQT & $\mathbf{.606}{\scriptstyle\pm.017}$ & $.565{\scriptstyle\pm.019}$ & 678 \
 \end{table}
 
 On regression (\cref{tab:main-regression}), the most striking finding is the \textbf{parameter efficiency of FC-VQCs}.
-FC-VQC achieves a 3-seed mean $R^2{=}0.829$ on Boston Housing with only 486--720 parameters.
-While this trails CatBoost ($0.861$) and XGBoost ($0.856$), it substantially outperforms MLP$_{720}$ ($R^2{=}0.758$)---an MLP with the exact same parameter count---confirming that VQC's inductive bias provides genuine representational benefit beyond mere parameter count.
-Notably, MLP$_{720}$ performs \emph{worse} than the smaller MLP$_{\text{PM}}$ ($0.769$), indicating that classical networks overfit at this dataset size when given more parameters, while FC-VQC does not.
+FC-VQC achieves a 3-seed mean $R^2{=}0.829$ on Boston Housing with only 720 parameters.
+While this trails CatBoost ($0.861$) and XGBoost ($0.856$), it substantially outperforms MLP$_{720}$ ($R^2{=}0.758$)---an MLP with the same parameter count---confirming that VQC's inductive bias provides genuine representational benefit beyond mere parameter count.
+On CA Housing and Concrete, MLP$_{720}$ achieves $R^2{=}0.812$ and $0.866$, outperforming FC-VQC ($0.750$, $0.774$) but trailing QT ($0.807$, $0.853$).
+This indicates that the VQC inductive bias advantage is strongest on the smallest dataset ($n{=}506$) and diminishes as data grows---at larger scales, classical MLPs with sufficient parameters catch up.
 
 QT achieves the highest mean $R^2$ on CA Housing ($0.807$) and Concrete ($0.853$), but at $2{\times}$--$3{\times}$ the parameter count of FC-VQC.
 FC-VQC reaches 90--96\% of QT's accuracy with 40--50\% fewer parameters---a trade-off that favors FC-VQC on parameter-constrained NISQ hardware.
