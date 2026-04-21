@@ -420,32 +420,30 @@ The interplay between attention and FFN connectivity is analyzed in \cref{sec:di
 
 \begin{table}[t]
 \centering
-\caption{Architecture ablation. Regression: test $R^2$; classification: test accuracy. $-$attn removes self-attention; T3 uses circular-shift (Type~3) FFN; +LN adds LayerNorm to FQT.}
+\caption{Architecture ablation on Boston Housing (3-seed mean $\pm$ std for Boston; single seed for other datasets). $-$attn removes self-attention; T3 uses circular-shift (Type~3) FFN; +LN adds LayerNorm to FQT.}
 \label{tab:ablation}
 \small
 \begin{tabular}{lrrrrr}
 \toprule
-Variant & Bos. & CA & Conc. & W-R & W-RW \\
+Variant & Bos.\ (3-seed) & CA & Conc. & W-R & W-RW \\
 \midrule
-QT (default) & .781 & .807 & .838 & .588 & .587 \\
-\quad $-$attn & .796 & .800 & .797 & .608 & .581 \\
-\quad T3 FFN & .778 & .808 & .820 & .613 & .590 \\
+QT (default) & $.742{\scriptstyle\pm.071}$ & .807 & .838 & .588 & .587 \\
+\quad $-$attn & $.756{\scriptstyle\pm.074}$ & .800 & .797 & .608 & .581 \\
+\quad T3 FFN & $.757{\scriptstyle\pm.070}$ & .808 & .820 & .613 & .590 \\
 \midrule
-FQT (default) & .799 & .786 & .792 & .608 & .592 \\
-\quad $-$attn & \textbf{.894} & .775 & .765 & .600 & .578 \\
-\quad T3 FFN & .885 & .798 & .818 & .592 & .593 \\
-\quad +LN & .810 & \textbf{.832} & .756 & \textbf{.629} & \textbf{.597} \\
+FQT (default) & $.705{\scriptstyle\pm.078}$ & .786 & .792 & .608 & .592 \\
+\quad $-$attn & $\mathbf{.851}{\scriptstyle\pm.042}$ & .775 & .765 & .600 & .578 \\
+\quad T3 FFN & $.755{\scriptstyle\pm.092}$ & .798 & .818 & .592 & .593 \\
+\quad +LN & $.707{\scriptstyle\pm.074}$ & \textbf{.832} & .756 & \textbf{.629} & \textbf{.597} \\
 \bottomrule
 \end{tabular}
 \vspace{-10pt}
 \end{table}
 
-The most notable finding is that \textbf{removing self-attention from FQT improves regression accuracy on Boston Housing} ($R^2$: $0.799 \!\to\! 0.894$, single seed).
-This is the highest $R^2$ achieved by any quantum model in our study, and it comes from a \emph{simpler} architecture.
+The most notable finding, now validated across 3 seeds, is that \textbf{removing self-attention from FQT improves regression accuracy on Boston Housing} (mean $R^2$: $0.705 \!\to\! 0.851 \pm 0.042$).
+FQT$-$attn achieves the highest mean $R^2$ of any ablation variant with the lowest variance, confirming this is not a single-seed artifact.
 We note that FQT without attention retains its stem VQC encoding and residual connections, making it architecturally similar to---but not identical with---ResNet-VQC; the key difference is that FQT$-$attn applies Type~4 FFN connectivity within transformer layers rather than across cascaded blocks.
-A similar pattern appears with Type~3 FFN ($0.885$).
-On other datasets the effect is smaller or reversed.
-Notably, this improvement is specific to Boston Housing ($n{=}506$), the smallest dataset; on the other four datasets, removing attention slightly degrades performance.
+On other datasets (single seed), removing attention slightly degrades performance.
 This asymmetry suggests a parameter-efficiency trade-off rather than a blanket redundancy of attention (see \cref{sec:discussion}).
 
 For classification, LayerNorm applied to FQT yields the best quantum accuracy across the board ($0.629$ on Wine Red, $0.597$ on Wine R+W), indicating that normalization is important for training stability in fully quantum architectures.
