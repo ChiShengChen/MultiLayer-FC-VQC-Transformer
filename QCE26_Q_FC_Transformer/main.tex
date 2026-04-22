@@ -162,6 +162,7 @@ The entangling CNOT gates follow a circular nearest-neighbor pattern that shifts
 Input features are encoded via angle embedding: $R_Y(x_i)$ on qubit $i$ before the first parameterized layer.
 Outputs are obtained by measuring the expectation value $\langle Z_i \rangle$ on each qubit.
 This ansatz provides a good balance between expressibility and trainability for small qubit counts~\cite{sim2019expressibility}.
+In practice, we implement this circuit via the \texttt{StronglyEntanglingLayers} template in PennyLane.
 \cref{fig:architectures} provides a visual overview of all four architectures.
 
 \begin{figure*}[t]
