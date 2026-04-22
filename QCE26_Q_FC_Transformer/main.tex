@@ -163,7 +163,19 @@ Input features are encoded via angle embedding: $R_Y(x_i)$ on qubit $i$ before t
 Outputs are obtained by measuring the expectation value $\langle Z_i \rangle$ on each qubit.
 This ansatz provides a good balance between expressibility and trainability for small qubit counts~\cite{sim2019expressibility}.
 In practice, we implement this circuit via the \texttt{StronglyEntanglingLayers} template in PennyLane.
+\cref{fig:circuits} illustrates the quantum circuits for two key configurations: the 3-qubit block used in FC-VQC/QT token processing, and the 5-qubit cross-token circuit used in FQT's quantum attention.
 \cref{fig:architectures} provides a visual overview of all four architectures.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/circuit_base_vqc.png}
+\vspace{2pt}
+\includegraphics[width=\columnwidth]{figures/circuit_fqt_attention.png}
+\vspace{-10pt}
+\caption{Quantum circuits. Top: 3-qubit base VQC block (depth 2) used for per-token processing in all architectures. Bottom: 5-qubit cross-token VQC (depth 2) used in FQT's quantum attention --- each qubit corresponds to one token, enabling all-to-all entanglement across tokens.}
+\label{fig:circuits}
+\vspace{-15pt}
+\end{figure}
 
 \begin{figure*}[t]
 \centering
@@ -365,7 +377,7 @@ MLP$_{\text{PM}}$ & $.696{\scriptstyle\pm.105}$ & $.779{\scriptstyle\pm.006}$ & 
 MLP$_{720}$ & $.753{\scriptstyle\pm.039}$ & $.800{\scriptstyle\pm.009}$ & $.867{\scriptstyle\pm.018}$ & 721--727 \\
 \midrule
 FC-VQC & $.829{\scriptstyle\pm.042}$ & $.750{\scriptstyle\pm.001}$ & $.774{\scriptstyle\pm.021}$ & 486--720 \\
--VQC & $.775{\scriptstyle\pm.040}$ & $.783{\scriptstyle\pm.004}$ & $.819{\scriptstyle\pm.028}$ & 486--720 \\
+ResNet-VQC & $.775{\scriptstyle\pm.040}$ & $.783{\scriptstyle\pm.004}$ & $.819{\scriptstyle\pm.028}$ & 486--720 \\
 QT & $.742{\scriptstyle\pm.071}$ & $.807{\scriptstyle\pm.001}$ & $.853{\scriptstyle\pm.011}$ & 828--1380 \\
 FQT & $.705{\scriptstyle\pm.078}$ & $.794{\scriptstyle\pm.007}$ & $.780{\scriptstyle\pm.016}$ & 513--855 \\
 \bottomrule
