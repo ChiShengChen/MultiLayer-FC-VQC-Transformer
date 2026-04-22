@@ -7,7 +7,7 @@ and classification benchmarks.
 **Paper:** *Do Quantum Transformers Help? A Systematic VQC Architecture
 Comparison on Tabular Benchmarks* — submitted to IEEE QCE 2026 (QML Track).
 
-![Architecture Overview](QCE26_Q_FC_Transformer/figures/architectures_3panel_c.png)
+![Architecture Overview](QCE26_Q_FC_Transformer/figures/architectures_4panel.png)
 
 ## Key Findings
 
