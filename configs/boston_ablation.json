@@ -52,9 +52,9 @@
     "lr": 0.005,
     "weight_decay": 0.0,
     "use_scheduler": false,
-    "epochs": 10000,
-    "print_every": 200,
-    "eval_interval": 200
+    "epochs": 5000,
+    "print_every": 500,
+    "eval_interval": 500
   },
   "batch_size": {
     "train": null,
