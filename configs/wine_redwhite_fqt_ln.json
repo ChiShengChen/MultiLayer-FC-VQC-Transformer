@@ -1,0 +1,32 @@
+{
+  "experiment": "WineQuality_RedandWhite",
+  "task_type": "classification",
+  "data": {
+    "csv_path": "data/wine-quality-white-and-red.csv",
+    "target_column": "quality",
+    "clip_percentile": 0
+  },
+  "models": [
+    {
+      "name": "FullQuantumTransformerVQC",
+      "module": "shared_models",
+      "vqc_depth": 3,
+      "hidden_layers": 2,
+      "use_layernorm": true,
+      "_comment": "FQT with LayerNorm"
+    }
+  ],
+  "training": {
+    "lr": 0.005,
+    "weight_decay": 0.0,
+    "use_scheduler": false,
+    "epochs": 10000,
+    "print_every": 500,
+    "eval_interval": 500
+  },
+  "batch_size": {
+    "train": null,
+    "val": null,
+    "test": null
+  }
+}

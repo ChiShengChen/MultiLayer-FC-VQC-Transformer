@@ -74,7 +74,7 @@ Our key findings are:
 \textbf{(ii)}~FC-VQC's Type~4 inter-block connectivity provides partial cross-token mixing that approximates the role of attention---explicit quantum self-attention yields only marginal gains on most datasets while significantly increasing parameter count;
 \textbf{(iii)}~expressibility saturates at circuit depth~${\approx}\,3$, explaining why shallow VQCs already cover the Hilbert space effectively;
 \textbf{(iv)}~LayerNorm on the fully quantum transformer improves classification accuracy, suggesting normalization is important when all operations are quantum;
-\textbf{(v)}~FQT degrades gracefully under depolarizing noise while QT collapses.
+\textbf{(v)}~in our noise study on Boston Housing, FQT degrades gracefully under depolarizing noise while QT collapses.
 All results are validated across three random seeds.
 These findings provide practical architectural guidance for deploying VQCs on near-term quantum hardware.
 \end{abstract}
@@ -108,7 +108,7 @@ We further conduct ablation studies on the transformer components and measure ci
 Our main contributions are:
 \begin{itemize}[leftmargin=*]
     \item A unified experimental framework enabling fair, controlled comparison across VQC architectures on identical data splits, training protocols, and evaluation metrics.
-    \item Evidence that \textbf{FC-VQCs are the most parameter-efficient} quantum architecture, achieving 90--96\% of the $R^2$ of attention-based VQCs at 40--50\% fewer parameters, and consistently outperforming equal-capacity MLPs (721 params). On all datasets, FC-VQCs trail gradient-boosted trees but remain competitive with ${\sim}$500--720 parameters versus ${\sim}$720 for an equal-capacity MLP that underperforms them. All claims are validated with 3-seed mean $\pm$ std.
+    \item Evidence that \textbf{FC-VQCs are the most parameter-efficient} quantum architecture: they outperform equal-capacity MLPs (721 params) while trailing only gradient-boosted trees that use 50--130${\times}$ more parameters. All claims are validated with 3-seed mean $\pm$ std.
     \item A formal analysis showing that \textbf{FC-VQC's Type~4 connectivity provides partial cross-token mixing} analogous to uniform attention with nonlinear VQC processing, explaining why explicit self-attention adds marginal benefit at disproportionate parameter cost on small tabular data.
     \item Practical guidance: expressibility saturates at depth~${\approx}\,3$, LayerNorm benefits fully quantum architectures on classification, FQT is more noise-robust than QT, and residual connections offer a reliable middle ground between FC-VQC and transformer complexity.
 \end{itemize}
@@ -117,7 +117,7 @@ Our main contributions are:
 \centering
 \includegraphics[width=\textwidth]{figures/architectures_4panel.png}
 \vspace{-15pt}
-\caption{Four model architectures compared. (a)~FC-VQC with decreasing qubit count per block. (b)~ResNet-VQC with dashed skip connections; the dimension-mismatched branch uses a linear projection $W \cdot \mathbf{z}_2$. (c)~QT --- hybrid transformer with classical multi-head attention and a quantum VQC FFN, LayerNorm retained. (d)~FQT --- fully quantum attention (VQC$_Q$, VQC$_K$, VQC$_V$) with no LayerNorm by default.}
+\caption{Four model architectures compared. (a)~FC-VQC with decreasing qubit count per block. (b)~ResNet-VQC with dashed skip connections; the dimension-mismatched branch uses a linear projection $W \cdot \mathbf{z}_2$. (c)~QT --- hybrid transformer with classical multi-head attention and a quantum VQC FFN, LayerNorm retained. (d)~FQT --- fully quantum attention via transpose-and-entangle $T$-qubit VQCs, with no LayerNorm by default.}
 \label{fig:architectures}
 \vspace{-10pt}
 \end{figure*}
@@ -448,7 +448,7 @@ Among quantum models, FQT achieves the highest mean accuracy on Wine Red ($0.606
 
 \begin{table}[t]
 \centering
-\caption{Effect of attention heads $H$. Test $R^2$ (regression) / accuracy (classification).}
+\caption{Effect of attention heads $H$ (single seed). Test $R^2$ (regression) / accuracy (classification).}
 \label{tab:multihead}
 \small
 \begin{tabular}{llrrrrr}
@@ -546,7 +546,7 @@ Linear proj. & 1.9098 \\
 \end{figure}
 
 \cref{tab:expressibility} and \cref{fig:expressibility} show that expressibility saturates at depth~$\approx\!3$, with KL divergence dropping from $0.20$ (depth~1) to $0.0027$ (depth~3) and plateauing thereafter.
-The classical linear projection baseline is roughly three orders of magnitude less expressive ($\mathrm{KL}{=}1.91$), confirming that even shallow VQC layers access a significantly richer region of Hilbert space.\footnote{The ratio $1.91/0.0027 \approx 700\times$ justifies ``three orders of magnitude'' for expressibility; the parameter-count comparison (720 vs.\ 13{,}000, $\approx\!18\times$) is roughly one order of magnitude.}
+The classical linear projection baseline is ${\sim}700{\times}$ less expressive ($\mathrm{KL}{=}1.91$ vs.\ $0.0027$), confirming that even shallow VQC layers access a significantly richer region of Hilbert space.
 
 \subsection{Noise Robustness}
 \label{sec:results-noise}
@@ -555,7 +555,7 @@ The classical linear projection baseline is roughly three orders of magnitude le
 
 \begin{table}[t]
 \centering
-\caption{Noise robustness on Boston Housing (test $R^2$). Depolarizing noise $p_d$ applied after every \texttt{StronglyEntanglingLayers} layer. Noiseless baseline from \cref{tab:main-regression}.}
+\caption{Noise robustness on Boston Housing (test $R^2$, single seed). Depolarizing noise $p_d$ applied after every parameterized layer. Noiseless column shows the single-seed baseline for this specific initialization (differs from the 3-seed means in \cref{tab:main-regression}).}
 \label{tab:noise}
 \small
 \begin{tabular}{lrrrrr}
