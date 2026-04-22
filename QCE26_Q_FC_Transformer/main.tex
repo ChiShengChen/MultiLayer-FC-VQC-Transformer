@@ -113,6 +113,15 @@ Our main contributions are:
     \item Practical guidance: expressibility saturates at depth~${\approx}\,3$, LayerNorm benefits fully quantum architectures on classification, FQT is more noise-robust than QT, and residual connections offer a reliable middle ground between FC-VQC and transformer complexity.
 \end{itemize}
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/architectures_4panel.png}
+\vspace{-15pt}
+\caption{Four model architectures compared. (a)~FC-VQC with decreasing qubit count per block. (b)~ResNet-VQC with dashed skip connections; the dimension-mismatched branch uses a linear projection $W \cdot \mathbf{z}_2$. (c)~QT --- hybrid transformer with classical multi-head attention and a quantum VQC FFN, LayerNorm retained. (d)~FQT --- fully quantum attention (VQC$_Q$, VQC$_K$, VQC$_V$) with no LayerNorm by default.}
+\label{fig:architectures}
+\vspace{-10pt}
+\end{figure*}
+
 %===================================================================
 \section{Related Work}
 \label{sec:related}
@@ -176,15 +185,6 @@ In practice, we implement this circuit via the \texttt{StronglyEntanglingLayers}
 \label{fig:circuits}
 \vspace{-15pt}
 \end{figure}
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{figures/architectures_4panel.png}
-\vspace{-15pt}
-\caption{Four model architectures compared. (a)~FC-VQC with decreasing qubit count per block. (b)~ResNet-VQC with dashed skip connections; the dimension-mismatched branch uses a linear projection $W \cdot \mathbf{z}_2$. (c)~QT --- hybrid transformer with classical multi-head attention and a quantum VQC FFN, LayerNorm retained. (d)~FQT --- fully quantum attention (VQC$_Q$, VQC$_K$, VQC$_V$) with no LayerNorm by default.}
-\label{fig:architectures}
-\vspace{-10pt}
-\end{figure*}
 
 \subsection{Tokenization}
 \label{sec:tokenization}
