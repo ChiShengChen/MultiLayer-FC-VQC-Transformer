@@ -279,7 +279,7 @@ where $p_d \in \{0.001, 0.005, 0.01, 0.05\}$ controls the noise strength.
 
 We evaluate on five tabular benchmarks spanning regression and classification (\cref{tab:datasets}).
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \caption{Dataset summary.}
 \label{tab:datasets}
@@ -296,7 +296,7 @@ Wine (R+W) & classification & 6{,}497 & 12 & quality \\
 \bottomrule
 \end{tabular}
 \vspace{-10pt}
-\end{table}
+\end{table*}
 
 Features are standardized to zero mean and unit variance.
 Regression targets are also standardized; predictions are inverse-transformed for evaluation.
@@ -625,6 +625,78 @@ We consider this a preliminary observation warranting further investigation.
 \paragraph{Practical recommendations}
 Based on our findings: (i)~\textbf{default to FC-VQC} with depth-3 blocks for tabular regression; (ii)~use \textbf{ResNet-VQC} when training stability is needed; (iii)~\textbf{avoid multi-head quantum attention} on small tabular data; (iv)~add \textbf{LayerNorm to FQT} for classification tasks; (v)~\textbf{prefer FQT over QT} if deploying on noisy hardware, as it degrades gracefully.
 
+\paragraph{Parameter breakdown}
+\cref{tab:param-breakdown} decomposes each architecture's parameters by component, clarifying where the cost of attention lies.
+QT's overhead comes from the 3 separate Q/K/V VQC projections per token per layer ($3 \times T \times d \times 9$ parameters), plus LayerNorm and output projection.
+FQT is more efficient: its quantum attention uses only $3 \times d \times T \times 3$ parameters (three $T$-qubit VQCs), roughly one-third of QT's attention cost.
+FC-VQC and ResNet-VQC have zero attention overhead---all parameters are VQC weights.
+
+\begin{table}[t]
+\centering
+\caption{Parameter breakdown by component (Boston Housing, $T{=}5$, depth $d{=}3$, $H{=}1$).}
+\label{tab:param-breakdown}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Model & VQC & Attn & LN/Proj & Total \\
+\midrule
+FC-VQC & 720 & 0 & 0 & 720 \\
+ResNet-VQC & 720 & 0 & 0 & 720 \\
+QT ($H{=}1$) & 690 & 405 & 285 & 1{,}380 \\
+FQT ($H{=}1$) & 720 & 135 & 0 & 855 \\
+\bottomrule
+\end{tabular}
+\vspace{-10pt}
+\end{table}
+
+\paragraph{Training efficiency}
+\cref{tab:wallclock} reports wall-clock training times on Boston Housing (10{,}000 epochs, single CPU, quantum circuit simulation via PennyLane).
+FC-VQC is ${\sim}$5${\times}$ faster than QT due to smaller circuits and no attention computation.
+These times reflect simulation cost; on actual quantum hardware, circuit depth (proportional to parameter count) would be the dominant factor.
+
+\begin{table}[t]
+\centering
+\caption{Wall-clock training time on Boston Housing (10K epochs, CPU simulation).}
+\label{tab:wallclock}
+\small
+\begin{tabular}{lrr}
+\toprule
+Model & Time (min) & Relative \\
+\midrule
+FC-VQC & ${\sim}$52 & 1.0${\times}$ \\
+ResNet-VQC & ${\sim}$100 & 1.9${\times}$ \\
+QT & ${\sim}$191 & 3.7${\times}$ \\
+FQT & ${\sim}$256 & 4.9${\times}$ \\
+\bottomrule
+\end{tabular}
+\vspace{-10pt}
+\end{table}
+
+\paragraph{Classification: per-class analysis}
+The low macro-F1 scores (${\leq}$0.33) on Wine datasets reflect severe class imbalance rather than model failure.
+Wine Red's quality distribution is heavily concentrated in classes 5 and 6 (42.6\% and 39.9\%), while minority classes 3, 4, and 8 collectively comprise only 5.1\% of samples.
+With a 70/15/15 split, the test set contains fewer than 5 samples per minority class, making per-class F1 unreliable.
+All models---quantum and classical alike---achieve near-zero recall on these classes, which deflates the macro-F1 average.
+This is a dataset limitation, not an architecture-specific weakness.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/ca_training_curves.png}
+\vspace{-20pt}
+\caption{Training and validation loss on CA Housing ($n{=}20{,}640$). Unlike Boston, QT (orange) converges to a lower val loss than FC-VQC (blue), consistent with its higher $R^2$ on larger datasets.}
+\label{fig:training-curves-ca}
+\vspace{-15pt}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/boston_pred_vs_gt.png}
+\vspace{-20pt}
+\caption{Prediction vs.\ ground truth on Boston Housing test set (best-seed run). Points near the diagonal indicate accurate predictions. FC-VQC tracks ground truth closely despite using only 720 parameters.}
+\label{fig:pred-vs-gt}
+\vspace{-15pt}
+\end{figure}
+
 \paragraph{Limitations}
 All experiments use quantum circuit simulation; behavior on real hardware may differ.
 Noise experiments are conducted on one dataset (Boston Housing); broader noise studies are left to future work.
@@ -647,10 +719,10 @@ For practitioners: default to FC-VQC with depth-3 blocks, use ResNet-VQC for tra
 Explicit attention may become worthwhile on sequential or high-dimensional data where $T$ is large, the training set is sufficient to support the extra parameters, and data-dependent selection provides a clear advantage over fixed mixing---testing this hypothesis is a key direction for future work.
 
 %===================================================================
-\ifarxiv
-\section*{Acknowledgment}
-% TODO: Add acknowledgments.
-\fi
+% \ifarxiv
+% \section*{Acknowledgment}
+% % TODO: Add acknowledgments.
+% \fi
 
 \bibliographystyle{IEEEtran}
 \bibliography{ref}
