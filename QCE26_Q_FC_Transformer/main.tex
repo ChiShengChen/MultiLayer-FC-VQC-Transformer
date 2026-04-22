@@ -152,9 +152,9 @@ We compare four VQC architecture families, all built on the \texttt{StronglyEnta
 
 \begin{figure*}[t]
 \centering
-\includesvg[width=\textwidth]{figures/architectures_3panel}
+\includegraphics[width=\textwidth]{figures/architectures_4panel.png}
 \vspace{-15pt}
-\caption{Three model architectures compared. (a)~FC-VQC with decreasing qubit count per block. (b)~ResNet-VQC with dashed skip connections; the dimension-mismatched branch uses a linear projection $W \cdot \mathbf{z}_2$. (c)~FQT with fully quantum attention (VQC$_Q$, VQC$_K$, VQC$_V$) and no LayerNorm by default.}
+\caption{Four model architectures compared. (a)~FC-VQC with decreasing qubit count per block. (b)~ResNet-VQC with dashed skip connections; the dimension-mismatched branch uses a linear projection $W \cdot \mathbf{z}_2$. (c)~QT --- hybrid transformer with classical multi-head attention and a quantum VQC FFN, LayerNorm retained. (d)~FQT --- fully quantum attention (VQC$_Q$, VQC$_K$, VQC$_V$) with no LayerNorm by default.}
 \label{fig:architectures}
 \vspace{-10pt}
 \end{figure*}
