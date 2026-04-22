@@ -1,143 +1,177 @@
-# Multi-Layer Fully-Connected VQCs
+# Do Quantum Transformers Help? A Systematic VQC Architecture Comparison on Tabular Benchmarks
 
-Quantum machine learning research code exploring **multi-layer fully-connected
-Variational Quantum Circuits (VQCs)**, **residual (ResNet-style) VQCs**, and
-**Quantum Transformer VQCs** on tabular regression and classification
-benchmarks.
+Quantum machine learning research code for a **systematic empirical comparison**
+of four variational quantum circuit (VQC) architectures on tabular regression
+and classification benchmarks.
+
+**Paper:** *Do Quantum Transformers Help? A Systematic VQC Architecture
+Comparison on Tabular Benchmarks* — submitted to IEEE QCE 2026 (QML Track).
+
+![Architecture Overview](QCE26_Q_FC_Transformer/figures/architectures_3panel_c.png)
+
+## Key Findings
+
+1. **FC-VQCs are the most parameter-efficient** quantum architecture, achieving
+   90–96% of the R² of attention-based VQCs with 40–50% fewer parameters, and
+   consistently outperforming equal-capacity MLPs (mean R²=0.829 vs MLP₇₂₀'s
+   0.753 on Boston Housing).
+2. **Quantum attention adds marginal benefit** on small tabular data — FC-VQC's
+   Type-4 connectivity already provides partial cross-token mixing analogous to
+   uniform attention.
+3. **Expressibility saturates at depth ≈ 3** — deeper circuits add parameters
+   without accessing new regions of Hilbert space.
+4. **FQT is more noise-robust than QT** — FQT degrades gracefully under
+   depolarizing noise while QT collapses due to softmax amplification.
+5. All results validated across **3 random seeds** with mean ± std.
 
 ## Architectures
 
-All models are implemented in per-experiment `models.py` files and the shared
-[shared_models.py](shared_models.py):
+| Architecture | Description | Params (Boston) |
+|-------------|-------------|---------------:|
+| **FC-VQC** | Cascaded VQC blocks with Type-4 fully-connected inter-block mixing | 720 |
+| **ResNet-VQC** | FC-VQC + classical residual (skip) connections | 720 |
+| **QT (Route A)** | Classical self-attention on VQC-encoded features + VQC FFN | 1,380 |
+| **FQT (Route B)** | Fully quantum attention via transpose-and-entangle + VQC FFN | 855 |
 
-- **Fully-Connected VQCs** (`FullyConnectedVQCs_*`) — Multi-layer FC-VQCs with
-  configurable qubit layouts (e.g. `16t4t1`, `15t5t2`, `52t18t6t1`).
-- **ResNet VQC** — VQC with residual / skip connections
-  ([shared_models.py](shared_models.py): `ResNetVQC`).
-- **Quantum Transformer VQCs** — Two routes:
-  - `QuantumTransformerVQC` (Route A, hybrid classical-quantum attention)
-  - `FullQuantumTransformerVQC` (Route B, fully quantum attention)
-- **Classical baselines** ([classical_models.py](classical_models.py)) —
-  MLP, XGBoost, CatBoost, LightGBM, Random Forest, etc.
+All models use the `StronglyEntanglingLayers` ansatz from PennyLane as the base
+quantum circuit block, with 3-qubit tokenization.
 
-## Datasets / Experiments
+Implementations: [shared_models.py](shared_models.py) (ResNet-VQC, QT, FQT),
+per-experiment `models.py` (FC-VQC variants),
+[classical_models.py](classical_models.py) (MLP, XGBoost, CatBoost, etc.).
 
-Each experiment lives in its own directory and can be driven from the
-config-based training entry point:
+## Datasets
 
-| Directory | Task | Target |
-|-----------|------|--------|
-| [BostonHousing/](BostonHousing/) | regression | MEDV |
-| [CA_Housing/](CA_Housing/) | regression | MedHouseVal |
-| [Concrete/](Concrete/) | regression | compressive strength |
-| [WineQuality_Red/](WineQuality_Red/) | classification | quality |
-| [WineQuality_RedandWhite/](WineQuality_RedandWhite/) | classification | quality |
-| [Option_Portfolio/](Option_Portfolio/) | regression | portfolio value |
+| Dataset | Task | n | Features |
+|---------|------|--:|--------:|
+| Boston Housing | regression | 506 | 13 |
+| CA Housing | regression | 20,640 | 8 |
+| Concrete | regression | 1,030 | 8 |
+| Wine Quality (Red) | classification | 1,599 | 11 |
+| Wine Quality (Red+White) | classification | 6,497 | 12 |
+
+## Results (3-seed mean ± std)
+
+### Regression (Test R²)
+
+| Model | Boston | CA Housing | Concrete | #params |
+|-------|--------|-----------|----------|--------:|
+| CatBoost | **.862±.008** | **.854±.005** | **.931±.018** | ~35K |
+| XGBoost | .845±.013 | .850±.002 | .914±.016 | ~95K |
+| MLP₇₂₀ | .753±.039 | .800±.009 | .867±.018 | 721 |
+| **FC-VQC** | .829±.042 | .750±.001 | .774±.021 | 486–720 |
+| ResNet-VQC | .775±.040 | .783±.004 | .819±.028 | 486–720 |
+| QT | .742±.071 | .807±.001 | .853±.011 | 828–1,380 |
+| FQT | .705±.078 | .794±.007 | .780±.016 | 513–855 |
+
+FC-VQC uses **48× fewer parameters** than CatBoost while achieving 96% of its
+R² on Boston Housing.
 
 ## Usage
 
 ### Config-driven training
 
-[train.py](train.py) is a config-driven wrapper that runs one or more models
-on a dataset, performs best-checkpointing by validation loss, and writes a
-timestamped run directory under `outputs/` with metrics CSV, prediction-vs-GT
-plots, and training-curve overlays.
-
 ```bash
-# Compare multiple models in one run
+# Compare models on a dataset
 python train.py --config configs/boston_compare.json
 
-# Run a single ResNet VQC with overrides
-python train.py --config configs/boston_resnet.json --depth 5 --layers 7
+# Run with a specific seed
+python train.py --config configs/boston_multiseed.json --seed 42
 
-# Depth/layer sweep
-python train.py --config configs/boston_resnet.json --sweep
+# Multi-seed batch (4 key models × 5 datasets × 3 seeds)
+bash run_multiseed.sh
 
-# List available models in an experiment module
-python train.py --list-models BostonHousing
-python train.py --list-models BostonHousing --module models_resnet
+# Classical baselines multi-seed
+bash run_classical_multiseed.sh
+
+# Aggregate results into mean±std tables + training curve plots
+python aggregate_multiseed.py
 ```
 
-Configs live in [configs/](configs/) and are organized by `<dataset>_<kind>.json`,
-where `<kind>` is one of: `compare`, `ablation`, `boosting`, `classical`,
-`noise`, `resnet`, `retrain_type4`, `transformers`, `transformers_mh`.
-
-### Batch experiment scripts
-
-- [run_all.sh](run_all.sh) — full comparison across datasets
-- [run_ablation.sh](run_ablation.sh) — depth / layer ablations
-- [run_boosting.sh](run_boosting.sh) — gradient-boosting baselines
-- [run_classical_rerun.sh](run_classical_rerun.sh) — classical baseline reruns
-- [run_noise.sh](run_noise.sh) — noise-robustness experiments
-- [run_multihead.sh](run_multihead.sh) / [run_transformers_mh.sh](run_transformers_mh.sh) —
-  multi-head Quantum Transformer sweeps
-- [run_retrain_type4.sh](run_retrain_type4.sh) — Type-4 VQC retraining
-
-### Analysis utilities
-
-- [expressibility_analysis.py](expressibility_analysis.py) — expressibility
-  measurement for the VQC ansätze
-- [summarize_results.py](summarize_results.py) — aggregate run metrics across
-  `outputs/` into summary tables
-- [tables.tex](tables.tex) — LaTeX tables for the paper
-
-#### Expressibility analysis
-
-Computes the Sim et al. (2019) expressibility metric
-$\mathrm{Expr} = D_{\mathrm{KL}}(P_{\mathrm{VQC}}(F)\,\|\,P_{\mathrm{Haar}}(F))$,
-where $F$ is the fidelity between pairs of random output states. Lower KL
-means the ansatz covers state space more uniformly (closer to Haar-random),
-which is the standard proxy for VQC expressive power.
+### Other experiments
 
 ```bash
+# Architecture ablation (attention removal, FFN modes, LayerNorm)
+python train.py --config configs/boston_ablation.json --seed 42
+
+# Noise robustness
+python train.py --config configs/boston_noise.json
+
+# Expressibility analysis
 python expressibility_analysis.py --n_samples 10000
+
+# Summarize all results into LaTeX tables
+python summarize_results.py
 ```
 
-Result on 3 qubits with 10,000 samples (`StronglyEntanglingLayers` ansatz vs.
-random linear projection baseline):
+### Configs
 
-| Model        | KL Divergence |
-|--------------|--------------:|
-| VQC depth=1  |      0.202078 |
-| VQC depth=2  |      0.004809 |
-| VQC depth=3  |      0.002656 |
-| VQC depth=4  |      0.002650 |
-| VQC depth=5  |      0.002730 |
-| Linear proj. |      1.909837 |
+Configs live in [configs/](configs/) organized as `<dataset>_<kind>.json`:
+- `compare` — main model comparison
+- `multiseed` — 4 key quantum models for multi-seed validation
+- `ablation` — attention/FFN/LayerNorm ablations
+- `noise` — depolarizing noise robustness
+- `classical` / `boosting` — classical baselines
+- `mlp720` — equal-capacity MLP baseline
+- `transformers_mh` — multi-head attention scaling
 
-Expressibility saturates around **depth ≈ 3** — additional layers give
-diminishing returns, while a classical linear projection of equivalent width
-is roughly **three orders of magnitude less expressive**. Plot:
-[expressibility_results.png](expressibility_results.png).
+## Paper
 
-## Project layout
+The QCE 2026 submission lives in [QCE26_Q_FC_Transformer/](QCE26_Q_FC_Transformer/):
+
+```
+QCE26_Q_FC_Transformer/
+├── main.tex              # Full paper (IEEE conference format)
+├── ref.bib               # References
+├── macros.tex            # LaTeX macros
+├── IEEEtran.cls          # IEEE template
+└── figures/
+    ├── architectures_3panel_c.png  # Architecture diagram
+    ├── pareto_r2_vs_params.png     # Parameter efficiency plot
+    ├── boston_training_curves.png   # Training curves
+    └── expressibility_results.png  # Expressibility analysis
+```
+
+## Project Layout
 
 ```
 .
-├── train.py                  # config-driven training entry point
-├── shared_models.py          # ResNet VQC + Quantum Transformer VQCs
-├── classical_models.py       # classical baselines (MLP / XGB / CatBoost / ...)
-├── summarize_results.py      # cross-run metric aggregation
-├── expressibility_analysis.py
-├── configs/                  # per-experiment JSON configs
-├── BostonHousing/            # dataset-specific models + legacy main.py
+├── train.py                    # Config-driven training entry point
+├── shared_models.py            # ResNet-VQC, QT, FQT implementations
+├── classical_models.py         # Classical baselines
+├── aggregate_multiseed.py      # Multi-seed result aggregation
+├── expressibility_analysis.py  # VQC expressibility measurement
+├── summarize_results.py        # Cross-run metric aggregation
+├── configs/                    # Experiment JSON configs
+├── BostonHousing/              # Dataset-specific models
 ├── CA_Housing/
 ├── Concrete/
 ├── WineQuality_Red/
 ├── WineQuality_RedandWhite/
-├── Option_Portfolio/
-└── run_*.sh                  # batch experiment drivers
+├── run_multiseed.sh            # Multi-seed quantum models
+├── run_classical_multiseed.sh  # Multi-seed classical baselines
+├── run_noise.sh                # Noise experiments
+├── run_ablation.sh             # Ablation experiments
+└── QCE26_Q_FC_Transformer/     # Paper (IEEE QCE 2026)
 ```
 
 ## Requirements
 
-The code uses PyTorch, PennyLane (for quantum circuit simulation), scikit-learn,
-pandas, matplotlib, and the boosting libraries (`xgboost`, `catboost`,
-`lightgbm`). Install via your preferred environment manager.
+- Python 3.11+
+- PyTorch
+- PennyLane (quantum circuit simulation)
+- scikit-learn, pandas, matplotlib
+- xgboost, catboost (for classical baselines)
 
-## Notes
+## Citation
 
-- Run outputs (`outputs/`) and cache directories are git-ignored.
-- Experiment modules retain their original `main.py` / `main_v2.py` /
-  `main_transformer.py` entry points; [train.py](train.py) wraps them without
-  modifying them.
+If you find this work useful, please cite:
+
+```bibtex
+@inproceedings{chen2026quantum_transformers_help,
+  title={Do Quantum Transformers Help? A Systematic {VQC} Architecture Comparison on Tabular Benchmarks},
+  author={Chen, Chi-Sheng and Su, Howard},
+  booktitle={IEEE International Conference on Quantum Computing and Engineering (QCE)},
+  year={2026}
+}
+```
