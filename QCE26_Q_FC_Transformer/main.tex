@@ -88,9 +88,9 @@ variational quantum circuits, quantum machine learning, parameter efficiency, qu
 \label{sec:intro}
 
 Variational quantum circuits (VQCs) have emerged as one of the most promising paradigms for quantum machine learning on noisy intermediate-scale quantum (NISQ) devices~\cite{cerezo2021variational, benedetti2019parameterized}.
-By parameterizing quantum gates and optimizing them via classical gradient methods, VQCs combine the expressiveness of quantum Hilbert space with the practicality of hybrid quantum--classical training loops.
+By parameterizing quantum gates and optimizing them via classical gradient methods, VQCs combine the expressiveness of quantum Hilbert space with the practicality of hybrid quantum--classical training loops~\cite{chen2024qeegnet, chen2026exploring}.
 
-Despite growing interest, the design space of VQC architectures remains poorly understood.
+Despite growing interest, the design space of VQC architectures remains poorly understood~\cite{chen2025quantumcl}.
 Classical deep learning has benefited enormously from systematic architectural comparisons---fully-connected networks versus convolutional networks versus transformers---which yielded clear guidelines on when each topology excels.
 No analogous study exists for VQCs.
 Most prior work proposes a single new circuit ansatz and evaluates it on one or two benchmarks, making it difficult to draw general conclusions.
@@ -121,6 +121,9 @@ Our main contributions are:
 VQCs, also known as parameterized quantum circuits (PQCs), have been widely studied as trainable models for quantum machine learning~\cite{cerezo2021variational, benedetti2019parameterized}.
 Their expressiveness depends on the circuit ansatz, depth, and entanglement structure~\cite{schuld2021effect}.
 A key challenge is the barren plateau phenomenon, where gradients vanish exponentially with qubit count~\cite{mcclean2018barren}, motivating the search for architectures that train efficiently.
+Abbas et al.~\cite{abbas2021power} showed that quantum neural networks can achieve higher effective dimension than classical counterparts, providing theoretical grounding for VQC expressiveness.
+Data re-uploading~\cite{perez2020data} further enhances single-qubit expressibility by interleaving data encoding with parameterized gates.
+Orthogonal to VQC-based approaches, quantum kernel methods~\cite{havlicek2019supervised} use quantum feature maps for classification, representing an alternative NISQ ML paradigm.
 
 \paragraph{Expressibility}
 Sim et al.~\cite{sim2019expressibility} proposed measuring circuit expressibility via the KL divergence between the fidelity distribution of random circuit outputs and the Haar-random reference.
@@ -141,14 +144,14 @@ Our ResNet-VQC follows the classical residual path approach.
 
 \paragraph{Classical baselines for tabular data}
 Gradient-boosted decision trees (XGBoost, CatBoost, LightGBM) consistently rank among the top methods on tabular benchmarks.
-Recent work has highlighted that deep learning often underperforms tree ensembles on tabular data, making them an essential baseline for any quantum ML study claiming practical relevance.
+Recent work has shown that deep learning often underperforms tree ensembles on typical tabular data~\cite{grinsztajn2022tree}, making them an essential baseline for any quantum ML study claiming practical relevance.
 
 %===================================================================
 \section{Methods}
 \label{sec:methods}
 
 We compare four VQC architecture families, all built on the \texttt{StronglyEntanglingLayers} ansatz from PennyLane as the base quantum circuit block.
-\cref{fig:architectures} provides a visual overview of three key architectures.
+\cref{fig:architectures} provides a visual overview of all four architectures.
 
 \begin{figure*}[t]
 \centering
