@@ -91,9 +91,9 @@ Variational quantum circuits (VQCs) have emerged as one of the most promising pa
 By parameterizing quantum gates and optimizing them via classical gradient methods, VQCs combine the expressiveness of quantum Hilbert space with the practicality of hybrid quantum--classical training loops~\cite{chen2024qeegnet, chen2026exploring}.
 
 Despite growing interest, the design space of VQC architectures remains poorly understood~\cite{chen2025quantumcl}.
-Classical deep learning has benefited enormously from systematic architectural comparisons---fully-connected networks versus convolutional networks versus transformers---which yielded clear guidelines on when each topology excels.
+Classical deep learning has benefited enormously from systematic architectural comparisons---fully-connected networks versus convolutional networks versus transformers~\cite{mauricio2023comparing, chen2024mind}---which yielded clear guidelines on when each topology excels.
 No analogous study exists for VQCs.
-Most prior work proposes a single new circuit ansatz and evaluates it on one or two benchmarks, making it difficult to draw general conclusions.
+Most prior work proposes a single new circuit ansatz and evaluates it on one or two benchmarks~\cite{chen2025qrwkv, chen2025quantumtws, chen2025q}, making it difficult to draw general conclusions.
 
 In this work, we address this gap with a \emph{systematic empirical comparison} of four VQC architecture families on tabular regression and classification tasks:
 \begin{enumerate}[leftmargin=*]
@@ -150,7 +150,18 @@ Recent work has shown that deep learning often underperforms tree ensembles on t
 \section{Methods}
 \label{sec:methods}
 
-We compare four VQC architecture families, all built on the \texttt{StronglyEntanglingLayers} ansatz from PennyLane as the base quantum circuit block.
+We compare four VQC architecture families, all sharing the same base quantum circuit block.
+Each block consists of $d$ repeated layers of parameterized single-qubit rotations followed by an entangling pattern.
+Concretely, for $n$ qubits at depth $d$, each layer $\ell$ applies:
+\begin{equation}
+    U_\ell(\theta) = \prod_{i=1}^{n} \mathrm{CNOT}_{i,\,(i+1)\bmod n}
+    \;\cdot\; \prod_{i=1}^{n} R_Z(\theta_{\ell,i,3})\, R_Y(\theta_{\ell,i,2})\, R_Z(\theta_{\ell,i,1}),
+\end{equation}
+where each qubit receives three trainable rotation angles per layer, yielding $3nd$ parameters per block.
+The entangling CNOT gates follow a circular nearest-neighbor pattern that shifts by one position per layer, ensuring all qubit pairs interact within $n$ layers~\cite{schuld2021effect}.
+Input features are encoded via angle embedding: $R_Y(x_i)$ on qubit $i$ before the first parameterized layer.
+Outputs are obtained by measuring the expectation value $\langle Z_i \rangle$ on each qubit.
+This ansatz provides a good balance between expressibility and trainability for small qubit counts~\cite{sim2019expressibility}.
 \cref{fig:architectures} provides a visual overview of all four architectures.
 
 \begin{figure*}[t]
@@ -353,7 +364,7 @@ MLP$_{\text{PM}}$ & $.696{\scriptstyle\pm.105}$ & $.779{\scriptstyle\pm.006}$ & 
 MLP$_{720}$ & $.753{\scriptstyle\pm.039}$ & $.800{\scriptstyle\pm.009}$ & $.867{\scriptstyle\pm.018}$ & 721--727 \\
 \midrule
 FC-VQC & $.829{\scriptstyle\pm.042}$ & $.750{\scriptstyle\pm.001}$ & $.774{\scriptstyle\pm.021}$ & 486--720 \\
-ResNet & $.775{\scriptstyle\pm.040}$ & $.783{\scriptstyle\pm.004}$ & $.819{\scriptstyle\pm.028}$ & 486--720 \\
+-VQC & $.775{\scriptstyle\pm.040}$ & $.783{\scriptstyle\pm.004}$ & $.819{\scriptstyle\pm.028}$ & 486--720 \\
 QT & $.742{\scriptstyle\pm.071}$ & $.807{\scriptstyle\pm.001}$ & $.853{\scriptstyle\pm.011}$ & 828--1380 \\
 FQT & $.705{\scriptstyle\pm.078}$ & $.794{\scriptstyle\pm.007}$ & $.780{\scriptstyle\pm.016}$ & 513--855 \\
 \bottomrule
@@ -377,7 +388,7 @@ XGBoost & $.664{\scriptstyle\pm.019}$ & $\mathbf{.667}{\scriptstyle\pm.020}$ & $
 MLP$_{\text{PM}}$ & $.614{\scriptstyle\pm.015}$ & $.557{\scriptstyle\pm.016}$ & 198 \\
 \midrule
 FC-VQC & $.592{\scriptstyle\pm.029}$ & $.567{\scriptstyle\pm.013}$ & 612 \\
-ResNet & $.601{\scriptstyle\pm.019}$ & $.567{\scriptstyle\pm.011}$ & 570 \\
+ResNet-VQC & $.601{\scriptstyle\pm.019}$ & $.567{\scriptstyle\pm.011}$ & 570 \\
 QT & $.565{\scriptstyle\pm.023}$ & $.567{\scriptstyle\pm.015}$ & 1098 \\
 FQT & $.606{\scriptstyle\pm.017}$ & $.565{\scriptstyle\pm.019}$ & 678 \\
 \bottomrule
