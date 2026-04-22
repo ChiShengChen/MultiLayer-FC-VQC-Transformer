@@ -6,10 +6,11 @@
 # =================================================================
 set -e
 
-SEEDS=(42 123 7)
+# Seed 42 already has results from prior ablation runs; only run new seeds.
+SEEDS=(123 7)
 
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║  FQT+LN classification × 3 seeds                        ║"
+echo "║  FQT+LN classification × 2 new seeds (42 already done)   ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 
 for seed in "${SEEDS[@]}"; do
