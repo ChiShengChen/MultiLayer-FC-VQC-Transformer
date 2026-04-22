@@ -32,6 +32,7 @@
 \usepackage{algpseudocode}
 \usepackage{thmtools,thm-restate}
 \usepackage{enumitem}
+\usepackage{svg}
 \usepackage[breaklinks=true,hidelinks,hyperfootnotes=false]{hyperref}
 \usepackage[nameinlink,capitalize]{cleveref}
 
@@ -151,7 +152,7 @@ We compare four VQC architecture families, all built on the \texttt{StronglyEnta
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/architectures_3panel.png}
+\includesvg[width=\textwidth]{figures/architectures_3panel}
 \vspace{-15pt}
 \caption{Three model architectures compared. (a)~FC-VQC with decreasing qubit count per block. (b)~ResNet-VQC with dashed skip connections; the dimension-mismatched branch uses a linear projection $W \cdot \mathbf{z}_2$. (c)~FQT with fully quantum attention (VQC$_Q$, VQC$_K$, VQC$_V$) and no LayerNorm by default.}
 \label{fig:architectures}
