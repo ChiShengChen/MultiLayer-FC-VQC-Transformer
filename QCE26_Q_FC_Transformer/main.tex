@@ -413,7 +413,8 @@ On regression (\cref{tab:main-regression}), the most striking finding is the \te
 FC-VQC achieves a 3-seed mean $R^2{=}0.829$ on Boston Housing with only 720 parameters.
 While this trails CatBoost ($0.861$) and XGBoost ($0.856$), it substantially outperforms MLP$_{720}$ ($R^2{=}0.753 \pm 0.039$)---an MLP with the same parameter count---confirming that VQC's inductive bias provides genuine representational benefit beyond mere parameter count.
 On CA Housing and Concrete, MLP$_{720}$ achieves mean $R^2{=}0.800$ and $0.867$, outperforming FC-VQC ($0.750$, $0.774$) but trailing QT ($0.807$, $0.853$).
-This indicates that the VQC inductive bias advantage is strongest on the smallest dataset ($n{=}506$) and diminishes as data grows---at larger scales, classical MLPs with sufficient parameters catch up.
+This indicates that the VQC inductive bias advantage is strongest on the smallest dataset ($n{=}506$) and diminishes as data grows---at larger scales, classical MLPs with sufficient parameters catch up (\cref{fig:training-curves-ca} shows the corresponding training dynamics on CA Housing, where QT converges to a lower validation loss than FC-VQC).
+\cref{fig:pred-vs-gt} visualizes prediction quality on Boston Housing, showing that FC-VQC tracks ground truth closely despite using only 720 parameters.
 
 QT achieves the highest mean $R^2$ on CA Housing ($0.807$) and Concrete ($0.853$), but at $2{\times}$--$3{\times}$ the parameter count of FC-VQC.
 FC-VQC reaches 90--96\% of QT's accuracy with 40--50\% fewer parameters---a trade-off that favors FC-VQC on parameter-constrained NISQ hardware (\cref{fig:pareto}).
