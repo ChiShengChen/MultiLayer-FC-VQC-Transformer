@@ -479,22 +479,23 @@ The interplay between attention and FFN connectivity is analyzed in \cref{sec:di
 
 \begin{table}[t]
 \centering
-\caption{Architecture ablation on Boston Housing (3-seed mean $\pm$ std for Boston; single seed for other datasets). $-$attn removes self-attention; T3 uses circular-shift (Type~3) FFN; +LN adds LayerNorm to FQT.}
+\caption{Architecture ablation (3-seed mean $\pm$ std; Wine R+W: single seed due to computational constraints). $-$attn removes self-attention; T3 uses circular-shift (Type~3) FFN; +LN adds LayerNorm to FQT.}
 \label{tab:ablation}
 \small
 \begin{tabular}{lrrrrr}
 \toprule
-Variant & Bos.\ (3-seed) & CA & Conc. & W-R & W-RW \\
+Variant & Bos. & CA & Conc. & W-R & W-RW$^\dagger$ \\
 \midrule
-QT (default) & $.742{\scriptstyle\pm.071}$ & .807 & .838 & .588 & .587 \\
-\quad $-$attn & $.756{\scriptstyle\pm.074}$ & .800 & .797 & .608 & .581 \\
-\quad T3 FFN & $.757{\scriptstyle\pm.070}$ & .808 & .820 & .613 & .590 \\
+QT (def.) & $.742{\scriptstyle\pm.071}$ & $.807{\scriptstyle\pm.001}$ & $.853{\scriptstyle\pm.011}$ & $.565{\scriptstyle\pm.023}$ & .587 \\
+\quad $-$attn & $.756{\scriptstyle\pm.074}$ & $.787{\scriptstyle\pm.010}$ & $.805{\scriptstyle\pm.019}$ & $.594{\scriptstyle\pm.012}$ & .581 \\
+\quad T3 & $.757{\scriptstyle\pm.070}$ & $.796{\scriptstyle\pm.009}$ & $.830{\scriptstyle\pm.008}$ & $.612{\scriptstyle\pm.024}$ & .590 \\
 \midrule
-FQT (default) & $.705{\scriptstyle\pm.078}$ & .786 & .792 & .608 & .592 \\
-\quad $-$attn & $\mathbf{.851}{\scriptstyle\pm.042}$ & .775 & .765 & .600 & .578 \\
-\quad T3 FFN & $.755{\scriptstyle\pm.092}$ & .798 & .818 & .592 & .593 \\
-\quad +LN & $.707{\scriptstyle\pm.074}$ & \textbf{.832} & .756 & \textbf{.629} & \textbf{.597} \\
+FQT (def.) & $.705{\scriptstyle\pm.078}$ & $.794{\scriptstyle\pm.007}$ & $.780{\scriptstyle\pm.016}$ & $.606{\scriptstyle\pm.017}$ & .592 \\
+\quad $-$attn & $\mathbf{.851}{\scriptstyle\pm.042}$ & $.770{\scriptstyle\pm.004}$ & $.792{\scriptstyle\pm.024}$ & $.606{\scriptstyle\pm.008}$ & .578 \\
+\quad T3 & $.755{\scriptstyle\pm.092}$ & $.787{\scriptstyle\pm.009}$ & $.786{\scriptstyle\pm.024}$ & $.599{\scriptstyle\pm.029}$ & .593 \\
+\quad +LN & $.707{\scriptstyle\pm.074}$ & $.799{\scriptstyle\pm.023}$ & $.624{\scriptstyle\pm.101}$ & $.601{\scriptstyle\pm.020}$ & \textbf{.597} \\
 \bottomrule
+\multicolumn{6}{l}{\scriptsize $^\dagger$Wine R+W: single seed (ablation seeds 123, 7 pending).}
 \end{tabular}
 \vspace{-10pt}
 \end{table}
