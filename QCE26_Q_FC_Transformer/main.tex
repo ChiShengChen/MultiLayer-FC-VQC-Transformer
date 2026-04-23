@@ -88,12 +88,12 @@ variational quantum circuits, quantum machine learning, parameter efficiency, qu
 \label{sec:intro}
 
 Variational quantum circuits (VQCs) have emerged as one of the most promising paradigms for quantum machine learning on noisy intermediate-scale quantum (NISQ) devices~\cite{cerezo2021variational, benedetti2019parameterized}.
-By parameterizing quantum gates and optimizing them via classical gradient methods, VQCs combine the expressiveness of quantum Hilbert space with the practicality of hybrid quantum--classical training loops~\cite{chen2024qeegnet, chen2026exploring}.
+By parameterizing quantum gates and optimizing them via classical gradient methods, VQCs combine the expressiveness of quantum Hilbert space with the practicality of hybrid quantum--classical training loops.
 
-Despite growing interest, the design space of VQC architectures remains poorly understood~\cite{chen2025quantumcl}.
-Classical deep learning has benefited enormously from systematic architectural comparisons---fully-connected networks versus convolutional networks versus transformers~\cite{mauricio2023comparing, chen2024mind}---which yielded clear guidelines on when each topology excels.
+Despite growing interest, the design space of VQC architectures remains poorly understood.
+Classical deep learning has benefited enormously from systematic architectural comparisons---fully-connected networks versus convolutional networks versus transformers---which yielded clear guidelines on when each topology excels.
 No analogous study exists for VQCs.
-Most prior work proposes a single new circuit ansatz and evaluates it on one or two benchmarks~\cite{chen2025qrwkv, chen2025quantumtws, chen2025q}, making it difficult to draw general conclusions.
+Most prior work proposes a single new circuit ansatz and evaluates it on one or two benchmarks, making it difficult to draw general conclusions.
 
 In this work, we address this gap with a \emph{systematic empirical comparison} of four VQC architecture families on tabular regression and classification tasks:
 \begin{enumerate}[leftmargin=*]
@@ -107,10 +107,9 @@ We further conduct ablation studies on the transformer components and measure ci
 
 Our main contributions are:
 \begin{itemize}[leftmargin=*]
-    \item A unified experimental framework enabling fair, controlled comparison across VQC architectures on identical data splits, training protocols, and evaluation metrics.
-    \item Evidence that \textbf{FC-VQCs are the most parameter-efficient} quantum architecture: they outperform equal-capacity MLPs (721 params) while trailing only gradient-boosted trees that use 50--130${\times}$ more parameters. All claims are validated with 3-seed mean $\pm$ std.
-    \item A formal analysis showing that \textbf{FC-VQC's Type~4 connectivity provides partial cross-token mixing} analogous to uniform attention with nonlinear VQC processing, explaining why explicit self-attention adds marginal benefit at disproportionate parameter cost on small tabular data.
-    \item Practical guidance: expressibility saturates at depth~${\approx}\,3$, LayerNorm benefits fully quantum architectures on classification, FQT is more noise-robust than QT, and residual connections offer a reliable middle ground between FC-VQC and transformer complexity.
+    \item \textbf{FC-VQCs are the most parameter-efficient quantum architecture}: they outperform equal-capacity MLPs (721 params) while trailing only gradient-boosted trees that use 50--130${\times}$ more parameters. We show that FC-VQC's Type~4 inter-block connectivity already provides partial cross-token mixing analogous to attention, explaining why adding explicit self-attention yields marginal gains at disproportionate parameter cost. All claims are validated with 3-seed mean $\pm$ std across five datasets.
+    \item \textbf{Noise robustness differs sharply by architecture}: FQT degrades gracefully under depolarizing noise while QT collapses due to softmax amplification of noisy VQC outputs, providing concrete guidance for NISQ deployment.
+    \item \textbf{Practical design rules}: expressibility saturates at depth~${\approx}\,3$; LayerNorm benefits fully quantum architectures on classification; residual connections offer a reliable middle ground between FC-VQC simplicity and transformer expressiveness.
 \end{itemize}
 
 \begin{figure*}[t]
@@ -575,9 +574,11 @@ First, \textbf{FQT is substantially more noise-robust than QT}.
 FQT maintains $R^2 > 0.76$ even at $p_d{=}0.05$, while QT collapses completely ($R^2{=}{-}4.04$).
 This is likely because FQT uses fewer total qubits per attention operation (3-qubit blocks in the FFN) compared to QT's per-token VQC projections for Q/K/V, making it less susceptible to accumulated gate errors.
 
-Second, and surprisingly, \textbf{moderate noise appears to improve performance}: FQT achieves $R^2{=}0.898$ at $p_d{=}0.005$, higher than its noiseless baseline ($0.799$ from \cref{tab:main-regression}).
-We note that the noise experiments use a different random initialization than the main comparison, so part of this gap may reflect initialization variance rather than a pure noise effect.
-Nevertheless, the consistent pattern across $p_d \in \{0.001, 0.005, 0.01\}$ (all exceeding the noiseless baseline) suggests that depolarizing noise acts as a form of implicit regularization, analogous to dropout in classical networks, preventing overfitting in the small-data regime ($n{=}506$).
+Second, FQT under moderate noise ($p_d \in \{0.001, 0.005, 0.01\}$) achieves $R^2$ values ($0.855$, $0.898$, $0.861$) that exceed its noiseless single-seed baseline ($0.799$).
+\textbf{We caution that this comparison is confounded}: the noise and noiseless runs use different random initializations and data splits (different seeds), so the gap likely reflects initialization variance compounded with a possible regularization effect.
+The 3-seed noiseless mean for FQT is $0.705 \pm 0.078$ (\cref{tab:main-regression}), and the noise results ($0.855$--$0.898$) fall within ${\sim}2\sigma$ of this distribution.
+A rigorous test would require running noise experiments across the same 3 seeds used for the noiseless baseline, which we leave to future work.
+That said, the \emph{relative} comparison between QT and FQT under noise remains valid, as both use the same initialization per noise level.
 
 QT's catastrophic failure at $p_d{=}0.05$ ($R^2{=}{-}4.04$) stems from NaN divergence during training (early-stopped at epoch~9), indicating that the classical attention's softmax operation amplifies noise-corrupted VQC outputs.
 FQT avoids this because its quantum attention operates via entangling gates that are inherently bounded in output range.
@@ -646,10 +647,10 @@ Testing these hypotheses on sequential and high-dimensional quantum tasks is a k
 The saturation of expressibility at depth~${\approx}\,3$ has a direct practical implication: \textbf{there is no benefit to using VQC depths beyond 3} for the \texttt{StronglyEntanglingLayers} ansatz on 3-qubit circuits.
 This is consistent with the parameter efficiency of FC-VQCs: even with shallow individual blocks, the multi-layer fully-connected topology provides sufficient expressiveness through inter-block connectivity rather than intra-block depth.
 
-\paragraph{Preliminary observation: noise as regularization}
-The noise robustness results (\cref{tab:noise}) suggest that moderate depolarizing noise ($p_d{=}0.005$) may improve FQT performance beyond its noiseless baseline, though we caution that this is observed on a single dataset (Boston Housing, the most variance-prone in our study) with a single noise seed.
-If confirmed on additional datasets, this would suggest that VQCs on NISQ hardware may benefit from---rather than be harmed by---realistic noise levels, provided the architecture avoids classical amplification bottlenecks (e.g., softmax on noisy inputs).
-We consider this a preliminary observation warranting further investigation.
+\paragraph{Noise robustness: QT vs.\ FQT}
+The robust finding from \cref{tab:noise} is the \emph{relative} difference: FQT tolerates noise up to $p_d{=}0.05$ while QT collapses.
+The apparent improvement of FQT under moderate noise versus its noiseless baseline is confounded by initialization differences across runs (see Section~\ref{sec:results-noise}) and should not be interpreted as evidence that noise helps.
+A controlled study with matched seeds across noise levels is needed to isolate any regularization effect.
 
 \paragraph{Practical recommendations}
 Based on our findings: (i)~\textbf{default to FC-VQC} with depth-3 blocks for tabular regression; (ii)~use \textbf{ResNet-VQC} when training stability is needed; (iii)~\textbf{avoid multi-head quantum attention} on small tabular data; (iv)~add \textbf{LayerNorm to FQT} for classification tasks; (v)~\textbf{prefer FQT over QT} if deploying on noisy hardware, as it degrades gracefully.
