@@ -494,7 +494,7 @@ FQT (def.) & $.705{\scriptstyle\pm.078}$ & $.794{\scriptstyle\pm.007}$ & $.780{\
 \quad T3 & $.755{\scriptstyle\pm.092}$ & $.787{\scriptstyle\pm.009}$ & $.786{\scriptstyle\pm.024}$ & $.599{\scriptstyle\pm.029}$ & .593 \\
 \quad +LN & $.707{\scriptstyle\pm.074}$ & $.799{\scriptstyle\pm.023}$ & $.624{\scriptstyle\pm.101}$ & $.601{\scriptstyle\pm.020}$ & \textbf{.597} \\
 \bottomrule
-\multicolumn{6}{l}{\scriptsize $^\dagger$Wine R+W: single seed (ablation seeds 123, 7 pending).}
+\multicolumn{6}{l}{\scriptsize $^\dagger$Wine R+W: single seed due to computational constraints.}
 \end{tabular}
 \vspace{-10pt}
 \end{table}
@@ -631,7 +631,7 @@ When $T$ is small (${\leq}5$), the fixed permutation covers a substantial fracti
 This analysis explains the experimental results:
 \begin{itemize}[leftmargin=*]
     \item \textbf{On most datasets}, explicit attention provides a small but positive contribution (e.g., CA Housing FQT: $0.786$ with attention vs.\ $0.775$ without), because all-to-all data-dependent mixing captures inter-token correlations that the fixed permutation misses.
-    \item \textbf{On Boston Housing} ($n{=}506$, the smallest dataset), removing attention \emph{improves} performance ($0.705 \to 0.851$, 3-seed mean) because the extra parameters in the attention block cause overfitting on the small training set. The Type~4 FFN alone provides sufficient mixing with far fewer parameters.
+    \item \textbf{On Boston Housing} ($n{=}506$, the smallest dataset), removing attention \emph{improves} performance ($0.705 \to 0.851$, 3-seed mean). \cref{fig:training-curves} shows that FQT's validation loss diverges from its training loss much earlier than FC-VQC's, consistent with overfitting caused by the extra attention parameters on a small training set ($n_{\text{train}} \approx 354$). The Type~4 FFN alone provides sufficient mixing with far fewer parameters.
     \item \textbf{Multi-head attention} ($H{=}2,3$) doubles or triples the parameter count but yields inconsistent gains (\cref{tab:multihead}), confirming that the marginal benefit of richer data-dependent mixing does not justify the parameter cost at this scale.
 \end{itemize}
 
@@ -730,10 +730,12 @@ This is a dataset limitation, not an architecture-specific weakness.
 
 \paragraph{Limitations}
 All experiments use quantum circuit simulation; behavior on real hardware may differ.
-Noise experiments are conducted on one dataset (Boston Housing); broader noise studies are left to future work.
+Noise experiments are conducted on one dataset (Boston Housing) with a single seed per noise level; broader noise studies with matched seeds are needed to isolate regularization effects from initialization variance.
 The datasets are small to moderate ($n \leq 20{,}640$) with low feature dimensionality (${\leq}$13).
 Larger, higher-dimensional datasets may favor different architectures.
 Our VQCs use at most 3 qubits per block; scaling to larger qubit counts could change the relative merits.
+We note that the Boston Housing dataset contains an ethically problematic feature (the ``B'' variable encoding racial demographics); we use it solely as a small-sample regression benchmark for comparability with prior VQC studies, and our core conclusions are corroborated by the remaining four datasets.
+Our two classification benchmarks (Wine Red and Wine Red+White) derive from the same UCI source, limiting the diversity of the classification evaluation.
 
 %===================================================================
 \section{Conclusion}
