@@ -1,0 +1,48 @@
+{
+  "experiment": "MNIST_4v9",
+  "task_type": "classification",
+  "data": {
+    "csv_path": "data/mnist_4v9_pca11.csv",
+    "target_column": "label",
+    "clip_percentile": 0
+  },
+  "models": [
+    {
+      "name": "FullyConnectedVQCs_12t8t6",
+      "module": "models",
+      "vqc_depth": 3,
+      "hidden_layers": 3
+    },
+    {
+      "name": "ResNetVQC",
+      "module": "shared_models",
+      "vqc_depth": 3,
+      "hidden_layers": 3
+    },
+    {
+      "name": "QuantumTransformerVQC",
+      "module": "shared_models",
+      "vqc_depth": 3,
+      "hidden_layers": 2
+    },
+    {
+      "name": "FullQuantumTransformerVQC",
+      "module": "shared_models",
+      "vqc_depth": 3,
+      "hidden_layers": 2
+    }
+  ],
+  "training": {
+    "lr": 0.005,
+    "weight_decay": 0.0,
+    "use_scheduler": false,
+    "epochs": 3000,
+    "print_every": 200,
+    "eval_interval": 200
+  },
+  "batch_size": {
+    "train": 128,
+    "val": 256,
+    "test": 256
+  }
+}

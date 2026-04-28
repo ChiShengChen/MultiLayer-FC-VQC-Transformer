@@ -1,39 +1,44 @@
 #!/usr/bin/env bash
 # =================================================================
-# Noise 3-seed validation (FQT only, Boston Housing)
-# 3 seeds × 3 models (noiseless + 2 noise levels) = 9 runs
-# Noiseless baseline included so seeds match exactly
-# Estimated: ~5-6 hours total (3K epochs, mixed-state simulator)
+# MNIST 4 vs 9 binary classification, 3-seed
+# 4 main models (FC-VQC, ResNet-VQC, QT, FQT)
+# Subsampled to 1500 train / 500 test per class, PCA -> 12 features
 # =================================================================
 set -e
 
 SEEDS=(42 123 7)
+CFG="configs/mnist_4v9_multiseed.json"
+
+# Auto-prepare CSV if missing
+if [ ! -f "MNIST_4v9/data/mnist_4v9_pca11.csv" ]; then
+    echo "MNIST CSV not found; running prepare_data.py..."
+    python MNIST_4v9/prepare_data.py
+fi
 
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║  Noise 3-seed: FQT × {noiseless, p=.001, .01}           ║"
-echo "║  3 seeds × 3 models = 9 runs (~5-6 hours)               ║"
+echo "║  MNIST 4 vs 9 (3-seed): 4 models × 3 seeds = 12 runs    ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 
 for seed in "${SEEDS[@]}"; do
-    # Skip if this seed already has a completed noise run
-    existing=$(find outputs/ -maxdepth 1 -type d -name "*_BostonHousing_seed${seed}" 2>/dev/null | while read d; do
-        c="$d/config.json"
-        if [ -f "$c" ] && grep -q "noise_strength" "$c" 2>/dev/null && [ -f "$d/comparison_metrics.csv" ]; then
-            echo "$d"
+    # Skip if a completed run for this seed already exists
+    existing=""
+    for d in outputs/*_MNIST_4v9_seed${seed}; do
+        if [ -d "$d" ] && [ -f "$d/comparison_metrics.csv" ]; then
+            existing="$d"
             break
         fi
-    done)
+    done
     if [ -n "$existing" ]; then
-        echo "  ⏭ Skipping Boston noise seed=$seed (found $existing)"
+        echo "  ⏭ Skipping seed=$seed (found $existing)"
         continue
     fi
 
     echo ""
-    echo "━━━ Boston FQT noise study | seed=$seed (3 models) ━━━"
-    python train.py --config configs/boston_noise_fqt_only.json --seed "$seed"
+    echo "━━━ MNIST 4 vs 9 | seed=$seed ━━━"
+    python train.py --config "$CFG" --seed "$seed"
 done
 
 echo ""
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║  Noise 3-seed runs complete.                             ║"
+echo "║  MNIST 4 vs 9 multiseed complete.                        ║"
 echo "╚══════════════════════════════════════════════════════════╝"

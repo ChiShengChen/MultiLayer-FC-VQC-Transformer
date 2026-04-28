@@ -27,13 +27,6 @@
       "module": "shared_models",
       "vqc_depth": 3,
       "hidden_layers": 2,
-      "noise_strength": 0.005
-    },
-    {
-      "name": "FullQuantumTransformerVQC",
-      "module": "shared_models",
-      "vqc_depth": 3,
-      "hidden_layers": 2,
       "noise_strength": 0.01
     }
   ],
@@ -41,7 +34,7 @@
     "lr": 0.005,
     "weight_decay": 0.0,
     "use_scheduler": false,
-    "epochs": 10000,
+    "epochs": 3000,
     "print_every": 500,
     "eval_interval": 500
   },

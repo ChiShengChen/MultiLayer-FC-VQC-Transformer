@@ -20,9 +20,13 @@ Comparison on Tabular Benchmarks* — submitted to IEEE QCE 2026 (QML Track).
    uniform attention.
 3. **Expressibility saturates at depth ≈ 3** — deeper circuits add parameters
    without accessing new regions of Hilbert space.
-4. **FQT is more noise-robust than QT** — FQT degrades gracefully under
-   depolarizing noise while QT collapses due to softmax amplification.
-5. All results validated across **3 random seeds** with mean ± std.
+4. **FQT is more noise-robust than QT** — 3-seed matched depolarizing-noise
+   study (Boston, p_d∈{0,.001,.01}) shows FQT remains stable while QT collapses
+   at higher noise; the apparent mild regularization is within seed variance.
+5. **No barren plateau** across the four architectures (3-qubit / depth-3
+   regime); FC-VQC has the largest median gradient signal (~7× that of QT),
+   consistent with its faster convergence.
+6. All quantum-model results validated across **3 random seeds** with mean ± std.
 
 ## Architectures
 
@@ -49,6 +53,7 @@ per-experiment `models.py` (FC-VQC variants),
 | Concrete | regression | 1,030 | 8 |
 | Wine Quality (Red) | classification | 1,599 | 11 |
 | Wine Quality (Red+White) | classification | 6,497 | 12 |
+| MNIST 4 vs 9 | binary classification | 4,000 (subset) | 11 (PCA-reduced) |
 
 ## Results (3-seed mean ± std)
 
@@ -94,11 +99,20 @@ python aggregate_multiseed.py
 # Architecture ablation (attention removal, FFN modes, LayerNorm)
 python train.py --config configs/boston_ablation.json --seed 42
 
-# Noise robustness
-python train.py --config configs/boston_noise.json
+# Multi-seed ablation across all 5 datasets
+bash run_ablation_multiseed.sh
+
+# Noise robustness — 3-seed matched (FQT, Boston Housing)
+bash run_noise_multiseed.sh
+
+# MNIST 4 vs 9 binary classification (3-seed)
+bash run_mnist_multiseed.sh
 
 # Expressibility analysis
 python expressibility_analysis.py --n_samples 10000
+
+# Barren-plateau / gradient-variance plot
+python plot_barren_plateau.py
 
 # Summarize all results into LaTeX tables
 python summarize_results.py
@@ -126,10 +140,11 @@ QCE26_Q_FC_Transformer/
 ├── macros.tex            # LaTeX macros
 ├── IEEEtran.cls          # IEEE template
 └── figures/
-    ├── architectures_3panel_c.png  # Architecture diagram
+    ├── architectures_4panel.png    # Architecture diagram
     ├── pareto_r2_vs_params.png     # Parameter efficiency plot
-    ├── boston_training_curves.png   # Training curves
-    └── expressibility_results.png  # Expressibility analysis
+    ├── boston_training_curves.png  # Training curves
+    ├── expressibility_results.png  # Expressibility analysis
+    └── grad_variance.png           # Trainability / gradient-variance plot
 ```
 
 ## Project Layout
@@ -148,10 +163,13 @@ QCE26_Q_FC_Transformer/
 ├── Concrete/
 ├── WineQuality_Red/
 ├── WineQuality_RedandWhite/
-├── run_multiseed.sh            # Multi-seed quantum models
+├── MNIST_4v9/                  # MNIST binary subset + PCA prep script
+├── plot_barren_plateau.py      # Gradient-variance / trainability plot
+├── run_multiseed.sh            # Multi-seed quantum models (main 4)
 ├── run_classical_multiseed.sh  # Multi-seed classical baselines
-├── run_noise.sh                # Noise experiments
-├── run_ablation.sh             # Ablation experiments
+├── run_noise_multiseed.sh      # 3-seed matched noise study (FQT)
+├── run_ablation_multiseed.sh   # 3-seed ablation across datasets
+├── run_mnist_multiseed.sh      # MNIST 4 vs 9 multi-seed
 └── QCE26_Q_FC_Transformer/     # Paper (IEEE QCE 2026)
 ```
 
