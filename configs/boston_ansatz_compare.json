@@ -1,0 +1,40 @@
+{
+  "experiment": "BostonHousing",
+  "task_type": "regression",
+  "data": {
+    "csv_path": "data/boston_housing.csv",
+    "target_column": "MEDV",
+    "clip_percentile": 0.04
+  },
+  "models": [
+    {
+      "name": "ResNetVQC",
+      "module": "shared_models",
+      "vqc_depth": 3,
+      "hidden_layers": 3,
+      "ansatz": "strong",
+      "_comment": "Baseline ansatz: StronglyEntanglingLayers (default)"
+    },
+    {
+      "name": "ResNetVQC",
+      "module": "shared_models",
+      "vqc_depth": 3,
+      "hidden_layers": 3,
+      "ansatz": "basic",
+      "_comment": "Alternative ansatz: BasicEntanglerLayers (1/3 the params per gate block)"
+    }
+  ],
+  "training": {
+    "lr": 0.005,
+    "weight_decay": 0.0,
+    "use_scheduler": false,
+    "epochs": 5000,
+    "print_every": 500,
+    "eval_interval": 500
+  },
+  "batch_size": {
+    "train": null,
+    "val": null,
+    "test": null
+  }
+}

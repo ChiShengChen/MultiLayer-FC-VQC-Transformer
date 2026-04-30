@@ -287,4 +287,6 @@ def make_run_name(mc: dict) -> str:
     ns = mc.get("noise_strength", 0.0)
     if ns > 0:
         parts.append(f"noise{ns}")
+    if mc.get("ansatz", "strong") != "strong":
+        parts.append(f"ansatz{mc['ansatz']}")
     return "_".join(parts)

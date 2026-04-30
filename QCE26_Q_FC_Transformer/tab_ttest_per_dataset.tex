@@ -1,0 +1,19 @@
+\begin{table*}[t]
+\centering
+\caption{Per-dataset paired $t$-tests (3 seeds, $\mathrm{df}{=}2$). Each cell shows $\bar{\Delta} = \text{metric}_A - \text{metric}_B$ and the corresponding $p$-value. Test metric is regression $R^2$ (Boston/CA/Concrete) or classification accuracy (Wine~R/R+W). Significant entries at $\alpha{=}0.05$ in \textbf{bold}.}
+\label{tab:ttest-per-dataset}
+\small
+\begin{tabular}{lrrrrrrrrrr}
+\toprule
+Dataset & \multicolumn{2}{c}{FC vs.\ QT} & \multicolumn{2}{c}{FC vs.\ FQT} & \multicolumn{2}{c}{FC vs.\ ResNet} & \multicolumn{2}{c}{ResNet vs.\ QT} & \multicolumn{2}{c}{FQT vs.\ QT} \\
+ & $\bar{\Delta}$ & $p$ & $\bar{\Delta}$ & $p$ & $\bar{\Delta}$ & $p$ & $\bar{\Delta}$ & $p$ & $\bar{\Delta}$ & $p$ \\
+\midrule
+BostonHousing & $+0.087$ & $0.203$ & $+0.124$ & $0.070$ & $\mathbf{+0.053}$ & $\mathbf{0.011}$ & $+0.033$ & $0.501$ & $-0.037$ & $0.689$ \\
+CA Housing & $\mathbf{-0.057}$ & $\mathbf{0.001}$ & $\mathbf{-0.044}$ & $\mathbf{0.014}$ & $\mathbf{-0.033}$ & $\mathbf{0.005}$ & $\mathbf{-0.024}$ & $\mathbf{0.021}$ & $-0.013$ & $0.123$ \\
+Concrete & $\mathbf{-0.079}$ & $\mathbf{0.021}$ & $-0.006$ & $0.845$ & $-0.045$ & $0.298$ & $-0.034$ & $0.339$ & $-0.073$ & $0.051$ \\
+Wine Red & $+0.026$ & $0.166$ & $-0.014$ & $0.242$ & $-0.010$ & $0.317$ & $\mathbf{+0.036}$ & $\mathbf{0.043}$ & $+0.040$ & $0.054$ \\
+Wine RedandWhite & $-0.000$ & $0.808$ & $+0.002$ & $0.779$ & $+0.000$ & $0.926$ & $-0.001$ & $0.874$ & $-0.002$ & $0.734$ \\
+\bottomrule
+\end{tabular}
+\vspace{-5pt}
+\end{table*}

@@ -38,6 +38,24 @@ def q_Nto1_Strong_function(x, weights, n_class):
     return [qml.expval(qml.PauliZ(0))]
 
 
+# ── BasicEntangler ansatz: weights shape (L, n_qubits) — 1 RX + ring CNOTs ──
+
+def q_NtoN_Basic_function(x, weights, n_class):
+    n_qub = int(weights.shape[-1])
+    assert n_class <= n_qub
+    qml.AngleEmbedding(x, wires=range(n_qub), rotation="Y")
+    qml.BasicEntanglerLayers(weights, wires=range(n_qub))
+    return [qml.expval(qml.PauliZ(i)) for i in range(n_class)]
+
+
+def q_Nto1_Basic_function(x, weights, n_class):
+    n_qub = int(weights.shape[-1])
+    assert n_class <= n_qub
+    qml.AngleEmbedding(x, wires=range(n_qub), rotation="Y")
+    qml.BasicEntanglerLayers(weights, wires=range(n_qub))
+    return [qml.expval(qml.PauliZ(0))]
+
+
 # ── Noisy circuit variants (depolarizing channel after each layer) ──
 
 def q_NtoN_Strong_noisy(x, weights, n_class, noise_strength=0.01):
@@ -92,9 +110,17 @@ def _pad_input(x, pad_left, pad_right):
     return torch.cat(parts, dim=1)
 
 
-def _make_qnodes(n_wires, noise_strength=0.0):
-    """Build QNode pair (NtoN, Nto1) — noisy if noise_strength > 0."""
+def _make_qnodes(n_wires, noise_strength=0.0, ansatz="strong"):
+    """Build QNode pair (NtoN, Nto1).
+
+    ansatz='strong' (default) -> StronglyEntanglingLayers, weights (L, K, 3)
+    ansatz='basic'            -> BasicEntanglerLayers,    weights (L, K)
+    Noisy variants are only implemented for the Strong ansatz.
+    """
     if noise_strength > 0:
+        if ansatz != "strong":
+            raise NotImplementedError(
+                "Noisy variants only implemented for ansatz='strong'.")
         dev = qml.device("default.mixed", wires=n_wires, shots=None)
         import functools
         nton_fn = functools.partial(q_NtoN_Strong_noisy,
@@ -103,11 +129,26 @@ def _make_qnodes(n_wires, noise_strength=0.0):
                                      noise_strength=noise_strength)
     else:
         dev = qml.device("default.qubit", wires=n_wires, shots=None)
-        nton_fn = q_NtoN_Strong_function
-        nto1_fn = q_Nto1_Strong_function
+        if ansatz == "strong":
+            nton_fn = q_NtoN_Strong_function
+            nto1_fn = q_Nto1_Strong_function
+        elif ansatz == "basic":
+            nton_fn = q_NtoN_Basic_function
+            nto1_fn = q_Nto1_Basic_function
+        else:
+            raise ValueError(f"Unknown ansatz {ansatz!r}; use 'strong' or 'basic'.")
     qnode_nton = qml.QNode(nton_fn, dev, interface="torch")
     qnode_nto1 = qml.QNode(nto1_fn, dev, interface="torch")
     return dev, qnode_nton, qnode_nto1
+
+
+def _ansatz_weight_shape(depth, n_qubits, ansatz):
+    """Weight tensor shape for the chosen ansatz."""
+    if ansatz == "strong":
+        return (depth, n_qubits, 3)
+    if ansatz == "basic":
+        return (depth, n_qubits)
+    raise ValueError(f"Unknown ansatz {ansatz!r}")
 
 
 def _build_multiple_inputs(blocks, n_blocks):
@@ -160,13 +201,14 @@ class ResNetVQC(nn.Module):
     """
 
     def __init__(self, n_features, layers, depth, n_classes=None,
-                 noise_strength=0.0):
+                 noise_strength=0.0, ansatz="strong"):
         super().__init__()
         self.n_features = n_features
         self.layers = layers
         self.vqc_depth = depth
         self.n_classes = n_classes
         self.noise_strength = noise_strength
+        self.ansatz = ansatz
 
         padded, n_tokens, pad_left, pad_right = _compute_padding(n_features)
         self.padded = padded
@@ -192,9 +234,9 @@ class ResNetVQC(nn.Module):
 
         # Quantum devices (noisy if noise_strength > 0)
         self.dev_Q3, self.qnode_3to3, self.qnode_3to1 = _make_qnodes(
-            3, noise_strength)
+            3, noise_strength, ansatz=ansatz)
 
-        # Q3 parameters: [layer_group][block] → (depth, 3, 3)
+        # Q3 parameters: [layer_group][block] → ansatz-dependent shape
         blocks_per_layer = []
         blocks_per_layer.append(n_tokens)  # stem
         for _ in range(layers):
@@ -205,17 +247,19 @@ class ResNetVQC(nn.Module):
             # n_tokens must be 3 here (since n_tokens <= 3 and we pad to multiple of 3)
             blocks_per_layer.append(3)  # second reduce: 3 → 1 (but actually it's a single 3to1)
 
+        q3_shape = _ansatz_weight_shape(depth, 3, ansatz)
         self.theta_Q3_list = nn.ModuleList([
             nn.ParameterList([
-                nn.Parameter(0.01 * torch.randn(depth, 3, 3))
+                nn.Parameter(0.01 * torch.randn(*q3_shape))
                 for _ in range(nb)])
             for nb in blocks_per_layer])
 
         # Final readout (only for n_tokens > 3, regression)
         if n_tokens > 3 and n_classes is None:
             self.dev_final, _, self.qnode_final = _make_qnodes(
-                n_tokens, noise_strength)
-            self.theta_final = nn.Parameter(0.01 * torch.randn(depth, n_tokens, 3))
+                n_tokens, noise_strength, ansatz=ansatz)
+            final_shape = _ansatz_weight_shape(depth, n_tokens, ansatz)
+            self.theta_final = nn.Parameter(0.01 * torch.randn(*final_shape))
 
         # Classification head
         if n_classes is not None:

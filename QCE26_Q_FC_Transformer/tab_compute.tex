@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\caption{Computational cost on a single CPU core (Boston Housing, $n_{\text{train}}{=}354$, $K{=}3$ qubits per block, depth~3). Train step = one full-batch forward + backward + Adam step. Inference latency = median of 50 single-sample forward passes. On-disk = serialized \texttt{state\_dict} bytes.}
+\label{tab:compute}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Model & \#params & Train step (s) & Inference (ms) & On-disk (KB) \\
+\midrule
+FC-VQC & 720 & 0.12 & 41.7 & 10.2 \\
+ResNet-VQC & 720 & 0.13 & 42.5 & 10.2 \\
+QT & 1,380 & 0.23 & 73.3 & 19.6 \\
+FQT & 855 & 0.19 & 49.5 & 10.8 \\
+\bottomrule
+\end{tabular}
+\vspace{-5pt}
+\end{table}

@@ -171,6 +171,8 @@ def _build_model_from_mc(mc: dict, experiment: str, n_features: int, n_classes: 
         elif "ResNet" in name:
             if "noise_strength" in mc:
                 kwargs["noise_strength"] = mc["noise_strength"]
+            if "ansatz" in mc:
+                kwargs["ansatz"] = mc["ansatz"]
         return cls(**kwargs)
 
     if "MLPRegressor" in name:
