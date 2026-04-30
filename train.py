@@ -162,17 +162,16 @@ def _build_model_from_mc(mc: dict, experiment: str, n_features: int, n_classes: 
             kwargs["n_classes"] = n_classes
         if mc.get("n_heads", 1) != 1 and "Transformer" in name:
             kwargs["n_heads"] = mc["n_heads"]
-        # Ablation / noise parameters
+        # Ablation / noise / ansatz parameters
         if "Transformer" in name:
             for key in ("ffn_mode", "use_attention", "use_layernorm",
-                        "noise_strength"):
+                        "noise_strength", "ansatz"):
                 if key in mc:
                     kwargs[key] = mc[key]
         elif "ResNet" in name:
-            if "noise_strength" in mc:
-                kwargs["noise_strength"] = mc["noise_strength"]
-            if "ansatz" in mc:
-                kwargs["ansatz"] = mc["ansatz"]
+            for key in ("noise_strength", "ansatz"):
+                if key in mc:
+                    kwargs[key] = mc[key]
         return cls(**kwargs)
 
     if "MLPRegressor" in name:
@@ -181,7 +180,16 @@ def _build_model_from_mc(mc: dict, experiment: str, n_features: int, n_classes: 
         return cls(in_dim=n_features, n_classes=n_classes, layers=layers, dropout=mc.get("dropout", 0.0))
     if "CatBoost" in name or "XGBoost" in name:
         return cls(depth)
-    return cls(layers=layers, depth=depth)
+    # FC-VQC variants in per-experiment models.py — forward ansatz if accepted
+    extra = {}
+    if "ansatz" in mc:
+        try:
+            import inspect
+            if "ansatz" in inspect.signature(cls.__init__).parameters:
+                extra["ansatz"] = mc["ansatz"]
+        except (TypeError, ValueError):
+            pass
+    return cls(layers=layers, depth=depth, **extra)
 
 
 # legacy wrapper

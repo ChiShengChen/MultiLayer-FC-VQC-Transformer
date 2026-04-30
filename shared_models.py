@@ -354,7 +354,8 @@ class QuantumTransformerVQC(nn.Module):
     """
 
     def __init__(self, n_features, layers, depth, n_classes=None, n_heads=1,
-                 ffn_mode="fully", use_attention=True, noise_strength=0.0):
+                 ffn_mode="fully", use_attention=True, noise_strength=0.0,
+                 ansatz="strong"):
         super().__init__()
         self.n_features = n_features
         self.layers = layers
@@ -364,6 +365,7 @@ class QuantumTransformerVQC(nn.Module):
         self.ffn_mode = ffn_mode          # "fully" (Type 4) or "multiple" (Type 3)
         self.use_attention = use_attention  # False → FFN-only ablation
         self.noise_strength = noise_strength
+        self.ansatz = ansatz
 
         padded, n_tokens, pad_left, pad_right = _compute_padding(n_features)
         self.padded = padded
@@ -374,47 +376,50 @@ class QuantumTransformerVQC(nn.Module):
         eps = np.finfo(np.float32).eps
         self.multiplier = np.pi - eps
 
+        # Pre-compute weight shapes for the chosen ansatz
+        q3_shape = _ansatz_weight_shape(depth, 3, ansatz)
+
         # Quantum devices (noisy if noise_strength > 0)
         self.dev_Q3, self.qnode_3to3, self.qnode_3to1 = _make_qnodes(
-            3, noise_strength)
+            3, noise_strength, ansatz=ansatz)
 
         # Per-layer Q, K, V projections (only if attention is used)
         if use_attention:
             if n_heads == 1:
                 self.theta_Q = nn.ModuleList([
                     nn.ParameterList([
-                        nn.Parameter(0.01 * torch.randn(depth, 3, 3))
+                        nn.Parameter(0.01 * torch.randn(*q3_shape))
                         for _ in range(n_tokens)])
                     for _ in range(layers)])
                 self.theta_K = nn.ModuleList([
                     nn.ParameterList([
-                        nn.Parameter(0.01 * torch.randn(depth, 3, 3))
+                        nn.Parameter(0.01 * torch.randn(*q3_shape))
                         for _ in range(n_tokens)])
                     for _ in range(layers)])
                 self.theta_V = nn.ModuleList([
                     nn.ParameterList([
-                        nn.Parameter(0.01 * torch.randn(depth, 3, 3))
+                        nn.Parameter(0.01 * torch.randn(*q3_shape))
                         for _ in range(n_tokens)])
                     for _ in range(layers)])
             else:
                 self.theta_Q = nn.ModuleList([
                     nn.ModuleList([
                         nn.ParameterList([
-                            nn.Parameter(0.01 * torch.randn(depth, 3, 3))
+                            nn.Parameter(0.01 * torch.randn(*q3_shape))
                             for _ in range(n_tokens)])
                         for _ in range(n_heads)])
                     for _ in range(layers)])
                 self.theta_K = nn.ModuleList([
                     nn.ModuleList([
                         nn.ParameterList([
-                            nn.Parameter(0.01 * torch.randn(depth, 3, 3))
+                            nn.Parameter(0.01 * torch.randn(*q3_shape))
                             for _ in range(n_tokens)])
                         for _ in range(n_heads)])
                     for _ in range(layers)])
                 self.theta_V = nn.ModuleList([
                     nn.ModuleList([
                         nn.ParameterList([
-                            nn.Parameter(0.01 * torch.randn(depth, 3, 3))
+                            nn.Parameter(0.01 * torch.randn(*q3_shape))
                             for _ in range(n_tokens)])
                         for _ in range(n_heads)])
                     for _ in range(layers)])
@@ -431,7 +436,7 @@ class QuantumTransformerVQC(nn.Module):
         # Per-layer: FFN projections (shared across heads)
         self.theta_FFN = nn.ModuleList([
             nn.ParameterList([
-                nn.Parameter(0.01 * torch.randn(depth, 3, 3))
+                nn.Parameter(0.01 * torch.randn(*q3_shape))
                 for _ in range(n_tokens)])
             for _ in range(layers)])
 
@@ -440,13 +445,14 @@ class QuantumTransformerVQC(nn.Module):
 
         # Readout
         self.theta_reduce = nn.ParameterList([
-            nn.Parameter(0.01 * torch.randn(depth, 3, 3))
+            nn.Parameter(0.01 * torch.randn(*q3_shape))
             for _ in range(n_tokens)])
 
         if n_classes is None:
             self.dev_final, _, self.qnode_final = _make_qnodes(
-                n_tokens, noise_strength)
-            self.theta_final = nn.Parameter(0.01 * torch.randn(depth, n_tokens, 3))
+                n_tokens, noise_strength, ansatz=ansatz)
+            final_shape = _ansatz_weight_shape(depth, n_tokens, ansatz)
+            self.theta_final = nn.Parameter(0.01 * torch.randn(*final_shape))
         else:
             self.cls_head = nn.Linear(n_tokens, n_classes)
 
@@ -546,7 +552,7 @@ class FullQuantumTransformerVQC(nn.Module):
 
     def __init__(self, n_features, layers, depth, n_classes=None, n_heads=1,
                  ffn_mode="fully", use_attention=True, use_layernorm=False,
-                 noise_strength=0.0):
+                 noise_strength=0.0, ansatz="strong"):
         super().__init__()
         self.n_features = n_features
         self.layers = layers
@@ -557,6 +563,7 @@ class FullQuantumTransformerVQC(nn.Module):
         self.use_attention = use_attention  # False → FFN-only ablation
         self.use_layernorm = use_layernorm  # True → add LayerNorm (ablation)
         self.noise_strength = noise_strength
+        self.ansatz = ansatz
 
         padded, n_tokens, pad_left, pad_right = _compute_padding(n_features)
         self.padded = padded
@@ -567,15 +574,19 @@ class FullQuantumTransformerVQC(nn.Module):
         eps = np.finfo(np.float32).eps
         self.multiplier = np.pi - eps
 
+        # Pre-compute weight shapes for the chosen ansatz
+        q3_shape = _ansatz_weight_shape(depth, 3, ansatz)
+        qnt_shape = _ansatz_weight_shape(depth, n_tokens, ansatz)
+
         # Quantum devices (noisy if noise_strength > 0)
         self.dev_Q3, self.qnode_3to3, self.qnode_3to1 = _make_qnodes(
-            3, noise_strength)
+            3, noise_strength, ansatz=ansatz)
         self.dev_Qnt, self.qnode_Nt_NtoN, self.qnode_Nt_Nto1 = _make_qnodes(
-            n_tokens, noise_strength)
+            n_tokens, noise_strength, ansatz=ansatz)
 
         # Stem: n_tokens Q3 VQCs
         self.theta_stem = nn.ParameterList([
-            nn.Parameter(0.01 * torch.randn(depth, 3, 3))
+            nn.Parameter(0.01 * torch.randn(*q3_shape))
             for _ in range(n_tokens)])
 
         # Per-layer Quantum Attention params (only if attention is used)
@@ -583,14 +594,14 @@ class FullQuantumTransformerVQC(nn.Module):
             if n_heads == 1:
                 self.theta_attn = nn.ModuleList([
                     nn.ParameterList([
-                        nn.Parameter(0.01 * torch.randn(depth, n_tokens, 3))
+                        nn.Parameter(0.01 * torch.randn(*qnt_shape))
                         for _ in range(3)])
                     for _ in range(layers)])
             else:
                 self.theta_attn = nn.ModuleList([
                     nn.ModuleList([
                         nn.ParameterList([
-                            nn.Parameter(0.01 * torch.randn(depth, n_tokens, 3))
+                            nn.Parameter(0.01 * torch.randn(*qnt_shape))
                             for _ in range(3)])
                         for _ in range(n_heads)])
                     for _ in range(layers)])
@@ -603,7 +614,7 @@ class FullQuantumTransformerVQC(nn.Module):
 
         self.theta_ffn = nn.ModuleList([
             nn.ParameterList([
-                nn.Parameter(0.01 * torch.randn(depth, 3, 3))
+                nn.Parameter(0.01 * torch.randn(*q3_shape))
                 for _ in range(n_tokens)])
             for _ in range(layers)])
 
@@ -615,11 +626,11 @@ class FullQuantumTransformerVQC(nn.Module):
 
         # Readout
         self.theta_reduce = nn.ParameterList([
-            nn.Parameter(0.01 * torch.randn(depth, 3, 3))
+            nn.Parameter(0.01 * torch.randn(*q3_shape))
             for _ in range(n_tokens)])
 
         if n_classes is None:
-            self.theta_final = nn.Parameter(0.01 * torch.randn(depth, n_tokens, 3))
+            self.theta_final = nn.Parameter(0.01 * torch.randn(*qnt_shape))
         else:
             self.cls_head = nn.Linear(n_tokens, n_classes)
 

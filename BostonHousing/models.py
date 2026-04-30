@@ -133,6 +133,29 @@ class MLPRegressor(nn.Module):
         return self.output_layer(x)
 
 
+# ── BasicEntangler ansatz: weights shape (L, n_qubits) ───────────────────
+def q_Nto1_Basic_function(x, weights, n_class):
+    n_qub = int(weights.shape[-1])
+    qml.AngleEmbedding(x, wires=range(n_qub), rotation="Y")
+    qml.BasicEntanglerLayers(weights, wires=range(n_qub))
+    return [qml.expval(qml.PauliZ(p)) for p in range(1)]
+
+
+def q_NtoN_Basic_function(x, weights, n_class):
+    n_qub = int(weights.shape[-1])
+    qml.AngleEmbedding(x, wires=range(n_qub), rotation="Y")
+    qml.BasicEntanglerLayers(weights, wires=range(n_qub))
+    return [qml.expval(qml.PauliZ(p)) for p in range(n_class)]
+
+
+def _ansatz_weight_shape(depth, n_qubits, ansatz):
+    if ansatz == "strong":
+        return (depth, n_qubits, 3)
+    if ansatz == "basic":
+        return (depth, n_qubits)
+    raise ValueError(f"Unknown ansatz {ansatz!r}")
+
+
 def q_Nto1_Strong_function(x, weights, n_class):
     """
     x        : (n_qubits,) or (batch, n_qubits)
@@ -569,10 +592,11 @@ class FullyConnectedVQCs_16t4t1(nn.Module):
 
 class FullyConnectedVQCs_15t5t1(nn.Module):
 
-    def __init__(self, layers, depth):
+    def __init__(self, layers, depth, ansatz="strong"):
         super().__init__()
         self.layers = layers
         self.vqc_depth = depth
+        self.ansatz = ansatz
         eps = np.finfo(np.float32).eps
         self.multiplier = np.pi-eps
         Q3_qubits = 3
@@ -584,20 +608,29 @@ class FullyConnectedVQCs_15t5t1(nn.Module):
         self.dev_Q3 = qml.device("default.qubit", wires=3, shots=shots)
         self.dev_Q5 = qml.device("default.qubit", wires=5, shots=shots)
 
-        # θ_list[t][l][d] -> Parameter[vqc_depth, n_qubits, 3]
-        self.quantum_net_Q3_3to3 = qml.QNode(q_NtoN_Strong_function,  self.dev_Q3, interface="torch")  
-        self.quantum_net_Q3_3to1 = qml.QNode(q_Nto1_Strong_function,  self.dev_Q3, interface="torch")  
-        self.quantum_net_Q5_5to1 = qml.QNode(q_Nto1_Strong_function,  self.dev_Q5, interface="torch")  
+        # Pick QNode kernels based on ansatz
+        if ansatz == "strong":
+            nton_fn, nto1_fn = q_NtoN_Strong_function, q_Nto1_Strong_function
+        elif ansatz == "basic":
+            nton_fn, nto1_fn = q_NtoN_Basic_function, q_Nto1_Basic_function
+        else:
+            raise ValueError(f"Unknown ansatz {ansatz!r}")
 
-        # ---- Trainable weights per block (shape (L, n_qubits, 3) for SEL) ----
+        self.quantum_net_Q3_3to3 = qml.QNode(nton_fn, self.dev_Q3, interface="torch")
+        self.quantum_net_Q3_3to1 = qml.QNode(nto1_fn, self.dev_Q3, interface="torch")
+        self.quantum_net_Q5_5to1 = qml.QNode(nto1_fn, self.dev_Q5, interface="torch")
+
+        # ---- Trainable weights per block (ansatz-dependent shape) ----
+        q3_shape = _ansatz_weight_shape(self.vqc_depth, Q3_qubits, ansatz)
+        q5_shape = _ansatz_weight_shape(self.vqc_depth, 5, ansatz)
 
         self.theta_Q3_list = nn.ModuleList([
                 nn.ParameterList([  # per layer l
-                    nn.Parameter(0.01 * torch.randn(self.vqc_depth, Q3_qubits, 3))
+                    nn.Parameter(0.01 * torch.randn(*q3_shape))
                     for _ in range(Q3_blocks)])
                 for __ in range(Q3_layers)])
 
-        self.theta_Q5 = nn.Parameter(0.01 * torch.randn(self.vqc_depth, 5, 3))
+        self.theta_Q5 = nn.Parameter(0.01 * torch.randn(*q5_shape))
 
     def _qcall_Q3_3to3(self, batch_in: torch.Tensor, theta: torch.Tensor, n_qubits: int) -> torch.Tensor:
 

@@ -1,0 +1,36 @@
+{
+  "experiment": "MNIST_4v9",
+  "task_type": "classification",
+  "data": {
+    "csv_path": "data/mnist_4v9_pca11.csv",
+    "target_column": "label",
+    "clip_percentile": 0
+  },
+  "models": [
+    {
+      "name": "CatBoostClassifier",
+      "iterations": 500,
+      "max_depth": 6,
+      "cb_lr": 0.1
+    },
+    {
+      "name": "MLPClassifier_ParamMatch",
+      "hidden_layers": 3,
+      "target_params": "auto",
+      "dropout": 0.0
+    }
+  ],
+  "training": {
+    "lr": 0.005,
+    "weight_decay": 0.0,
+    "use_scheduler": false,
+    "epochs": 5000,
+    "print_every": 200,
+    "eval_interval": 200
+  },
+  "batch_size": {
+    "train": 128,
+    "val": 256,
+    "test": 256
+  }
+}

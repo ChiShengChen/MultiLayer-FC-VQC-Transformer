@@ -392,21 +392,21 @@ FQT & $.705{\scriptstyle\pm.078}$ & $.794{\scriptstyle\pm.007}$ & $.780{\scripts
 
 \begin{table}[t]
 \centering
-\caption{Test accuracy on classification datasets. All quantum-model results: 3-seed mean $\pm$ std. Best overall mean per column in \textbf{bold}. \#p reported for the Wine R+W setting; MNIST counts (612/550/1078/658 for FC/ResNet/QT/FQT) are similar.}
+\caption{Test accuracy on classification datasets. All quantum-model and MLP-PM results: 3-seed mean $\pm$ std. Best overall mean per column in \textbf{bold}. \#p reported for the Wine R+W setting; MNIST counts (612/550/1078/658 for FC/ResNet/QT/FQT; 212 for MLP-PM) are similar. XGBoost on MNIST omitted: macOS library segfault not seen on Linux.}
 \label{tab:main-classification}
 \small
 \begin{tabular}{lrrrr}
 \toprule
 Model & Wine (Red) & Wine (R+W) & MNIST 4v9 & \#p \\
 \midrule
-CatBoost & $\mathbf{.678}{\scriptstyle\pm.017}$ & $.649{\scriptstyle\pm.012}$ & --- & ${\sim}$35K \\
+CatBoost & $\mathbf{.678}{\scriptstyle\pm.017}$ & $.649{\scriptstyle\pm.012}$ & $\mathbf{.952}{\scriptstyle\pm.007}$ & ${\sim}$35K \\
 XGBoost & $.664{\scriptstyle\pm.019}$ & $\mathbf{.667}{\scriptstyle\pm.020}$ & --- & ${\sim}$95K \\
 \midrule
-MLP$_{\text{PM}}$ & $.614{\scriptstyle\pm.015}$ & $.557{\scriptstyle\pm.016}$ & --- & 198 \\
+MLP$_{\text{PM}}$ & $.614{\scriptstyle\pm.015}$ & $.557{\scriptstyle\pm.016}$ & $.943{\scriptstyle\pm.011}$ & 198--212 \\
 \midrule
 FC-VQC & $.592{\scriptstyle\pm.029}$ & $.567{\scriptstyle\pm.013}$ & $.938{\scriptstyle\pm.007}$ & 612 \\
 ResNet-VQC & $.601{\scriptstyle\pm.019}$ & $.567{\scriptstyle\pm.011}$ & $.936{\scriptstyle\pm.010}$ & 570 \\
-QT & $.565{\scriptstyle\pm.023}$ & $.567{\scriptstyle\pm.015}$ & $\mathbf{.942}{\scriptstyle\pm.003}$ & 1098 \\
+QT & $.565{\scriptstyle\pm.023}$ & $.567{\scriptstyle\pm.015}$ & $.942{\scriptstyle\pm.003}$ & 1098 \\
 FQT & $.606{\scriptstyle\pm.017}$ & $.565{\scriptstyle\pm.019}$ & $.941{\scriptstyle\pm.015}$ & 678 \\
 \bottomrule
 \end{tabular}
@@ -426,7 +426,7 @@ ResNet-VQC provides a reliable middle ground: competitive accuracy with the same
 \cref{fig:training-curves} shows that FC-VQC converges fastest on Boston Housing, while QT and FQT exhibit higher variance across seeds.
 
 On classification (\cref{tab:main-classification}), all quantum models trail tree-based methods on Wine by 7--13\% accuracy, consistent with the known strength of gradient-boosted ensembles on tabular data.
-Among quantum models, FQT achieves the highest mean accuracy on Wine Red ($0.606 \pm 0.017$), and on the simpler binary MNIST 4v9 task all four architectures cluster within 0.6\% of each other (mean ${\approx}$93.6--94.2\%), with QT and FQT marginally ahead but well within seed variance.
+Among quantum models, FQT achieves the highest mean accuracy on Wine Red ($0.606 \pm 0.017$), and on the simpler binary MNIST 4v9 task all four architectures cluster within 0.6\% of each other (mean ${\approx}$93.6--94.2\%), with QT and FQT marginally ahead but well within seed variance. The CatBoost MNIST baseline (${.952}\pm{.007}$) is ${\sim}1.0$--$1.6$\% above the VQCs at $\sim 30\!-\!60\times$ the parameter count; the parameter-matched MLP-PM (212~params, ${.943}\pm{.011}$) is statistically indistinguishable from FC-VQC and ResNet-VQC, again pointing to a parameter-efficiency rather than accuracy frontier.
 This MNIST result extends the central tabular-data finding to a structured-image setting under PCA encoding: the choice between FC-VQC and attention-based VQCs is not categorical but a parameter-efficiency trade-off.
 
 \begin{figure*}[t]

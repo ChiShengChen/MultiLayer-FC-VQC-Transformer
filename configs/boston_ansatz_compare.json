@@ -8,20 +8,32 @@
   },
   "models": [
     {
-      "name": "ResNetVQC",
-      "module": "shared_models",
+      "name": "FullyConnectedVQCs_15t5t1",
+      "module": "models",
       "vqc_depth": 3,
       "hidden_layers": 3,
-      "ansatz": "strong",
-      "_comment": "Baseline ansatz: StronglyEntanglingLayers (default)"
+      "ansatz": "basic"
     },
     {
       "name": "ResNetVQC",
       "module": "shared_models",
       "vqc_depth": 3,
       "hidden_layers": 3,
-      "ansatz": "basic",
-      "_comment": "Alternative ansatz: BasicEntanglerLayers (1/3 the params per gate block)"
+      "ansatz": "basic"
+    },
+    {
+      "name": "QuantumTransformerVQC",
+      "module": "shared_models",
+      "vqc_depth": 3,
+      "hidden_layers": 2,
+      "ansatz": "basic"
+    },
+    {
+      "name": "FullQuantumTransformerVQC",
+      "module": "shared_models",
+      "vqc_depth": 3,
+      "hidden_layers": 2,
+      "ansatz": "basic"
     }
   ],
   "training": {
