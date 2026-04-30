@@ -76,7 +76,7 @@ Our key findings are:
 \textbf{(iv)}~LayerNorm on the fully quantum transformer improves classification accuracy, suggesting normalization is important when all operations are quantum;
 \textbf{(v)}~in our 3-seed noise study on Boston Housing, FQT remains stable under depolarizing noise up to $p_d{=}0.01$ while QT collapses; gradient-variance tracking shows none of the four architectures suffers a barren plateau, with FC-VQC exhibiting the largest median gradient signal (${\sim}7\times$ that of QT);
 \textbf{(vi)}~paired statistical tests across 5 datasets $\times$ 3 seeds find no significant pairwise architecture differences ($p{>}0.34$ for all five comparisons), reframing FC-VQC's appeal as a \emph{parameter-efficiency} rather than an accuracy claim;
-\textbf{(vii)}~replacing the \texttt{StronglyEntanglingLayers} ansatz with the lighter \texttt{BasicEntanglerLayers} on ResNet-VQC drops $R^2$ by 0.18 with $3{\times}$ fewer parameters, indicating that our parameter-efficiency conclusions assume a sufficiently expressive ansatz;
+\textbf{(vii)}~swapping \texttt{StronglyEntanglingLayers} for \texttt{BasicEntanglerLayers} (a $3{\times}$ parameter cut) is harmful for FC-VQC ($\Delta R^2{=}0.49$, paired $t$-test $p{=}0.037$) but mild for ResNet-VQC, QT, and FQT ($\Delta R^2 \in [0.05, 0.14]$, all $p{>}0.2$): our parameter-efficiency claim for FC-VQC is conditional on an expressive entangling ansatz, whereas attention-based VQCs are more ansatz-robust;
 \textbf{(viii)}~zero-shot deployment of a noiseless-trained FC-VQC under IBM Eagle/Heron-calibrated depolarizing noise collapses test $R^2$ from $0.889$ to ${\approx}0$, motivating noise-aware training as the correct NISQ deployment recipe.
 All quantum-model results are validated across three random seeds.
 These findings provide practical architectural guidance for deploying VQCs on near-term quantum hardware.
@@ -647,29 +647,33 @@ We emphasise that this is a calibrated noise-model emulation and not a real queu
 \subsection{Ansatz Choice}
 \label{sec:results-ansatz}
 
-To probe whether our findings depend on the specific variational ansatz, we re-ran ResNet-VQC on Boston Housing with the same training protocol but replaced the \texttt{StronglyEntanglingLayers} ansatz~\cite{schuld2020circuit} (3 rotations $\times$ ring of CNOTs per layer; weight tensor of shape $(L, K, 3)$) with PennyLane's~\cite{bergholm2018pennylane} \texttt{BasicEntanglerLayers} (single $R_X$ per qubit + ring of CNOTs; weight tensor of shape $(L, K)$).
-At depth $L{=}3$, $K{=}3$, this reduces the per-block parameter count by a factor of 3, dropping the total parameter count of ResNet-VQC from 720 to 240.
+To probe whether our findings depend on the specific variational ansatz, we re-ran \emph{all four architectures} on Boston Housing (3 seeds, matched training protocol) replacing the \texttt{StronglyEntanglingLayers} ansatz~\cite{schuld2020circuit} (3 rotations $\times$ ring of CNOTs per layer; weight tensor of shape $(L, K, 3)$) with PennyLane's~\cite{bergholm2018pennylane} \texttt{BasicEntanglerLayers} (single $R_X$ per qubit + ring of CNOTs; weight tensor of shape $(L, K)$).
+At depth $L{=}3$, $K{=}3$, this reduces the per-block parameter count by a factor of 3 and shrinks the total parameter count of every architecture by ${\sim}3{\times}$ (720$\to$240 for FC-VQC and ResNet-VQC, 1380$\to$540 for QT, 855$\to$285 for FQT).
 
 \begin{table}[t]
 \centering
-\caption{Effect of ansatz family on ResNet-VQC (Boston Housing, 3-seed mean $\pm$ std). \emph{Strong} = StronglyEntanglingLayers; \emph{Basic} = BasicEntanglerLayers (single $R_X$ + CNOT ring).}
+\caption{Effect of ansatz family on the four main architectures (Boston Housing, 3-seed mean $\pm$ std). $\bar{\Delta}$ is the per-seed paired difference Strong $-$ Basic; significant entries at $\alpha{=}0.05$ in \textbf{bold}.}
 \label{tab:ansatz}
 \small
-\begin{tabular}{lrrr}
+\begin{tabular}{lrrrrr}
 \toprule
-Ansatz & \#p & Test $R^2$ & $R^2$ gap \\
+Architecture & Strong (\#p) $R^2$ & Basic (\#p) $R^2$ & $\bar{\Delta}$ & $t_{2}$ & $p$ \\
 \midrule
-Strong (default) & 720 & $\mathbf{.776}{\scriptstyle\pm.061}$ & --- \\
-Basic            & 240 & $.596{\scriptstyle\pm.155}$           & $-0.180$ \\
+FC-VQC      & (720) $.829{\scriptstyle\pm.052}$ & (240) $.336{\scriptstyle\pm.136}$ & $\mathbf{+.493}$ & $\mathbf{+5.08}$ & $\mathbf{0.037}$ \\
+ResNet-VQC  & (720) $.775{\scriptstyle\pm.049}$ & (240) $.639{\scriptstyle\pm.168}$ & $+.136$ & $+1.72$ & $0.227$ \\
+QT          & (1380) $.742{\scriptstyle\pm.087}$ & (540) $.691{\scriptstyle\pm.182}$ & $+.051$ & $+0.93$ & $0.449$ \\
+FQT         & (855) $.705{\scriptstyle\pm.096}$ & (285) $.621{\scriptstyle\pm.178}$ & $+.084$ & $+0.67$ & $0.572$ \\
 \bottomrule
 \end{tabular}
 \vspace{-5pt}
 \end{table}
 
-The Basic ansatz trails the Strong default by $\Delta R^2{=}0.180$ on average across seeds.
-A paired $t$-test on the per-seed differences gives $t_2{=}3.34$, $p{=}0.079$ ($n{=}3$ seeds), which is below the $\alpha{=}0.05$ threshold but consistent with a meaningful effect at this small $n$.
-Beyond the mean shift, the Basic ansatz also exhibits ${\sim}\!2.5\times$ higher cross-seed std and one seed where it failed to escape a poor optimum ($R^2{=}0.43$ at seed~123 vs.\ $0.71$ for Strong).
-This indicates that the choice of expressive ansatz \emph{matters} for ResNet-VQC at the scales we study; our headline parameter-efficiency claim assumes a sufficiently expressive ansatz family, and this dependence should be flagged when comparing parameter counts across VQC architectures.
+\cref{tab:ansatz} reveals an architecture-dependent picture.
+\textbf{FC-VQC suffers the largest hit} ($\bar{\Delta}{=}{+}0.493$, $p{=}0.037$), with mean $R^2$ collapsing from $0.829$ to $0.336$ when the ansatz is downgraded to Basic; the seed-42 run barely escapes baseline ($R^2{=}0.25$), indicating that FC-VQC's parameter efficiency genuinely depends on the expressivity of \texttt{StronglyEntanglingLayers}.
+\textbf{Attention-based architectures (QT and FQT) and ResNet-VQC are far more robust} to the ansatz swap ($\bar{\Delta}\!\in\!\{0.05, 0.08, 0.14\}$, none significant at $n{=}3$), losing 5--14\% mean $R^2$ but typically keeping $R^2 > 0.6$ on most seeds.
+A plausible interpretation is that QT/FQT's classical and quantum attention mechanisms partially compensate for the lower per-gate expressivity by aggregating information across more parameters, while FC-VQC's per-block expressivity is more directly bottlenecked.
+Across all four architectures, the Basic ansatz also has 2--3${\times}$ higher cross-seed std, indicating less stable optimisation independent of mean accuracy.
+The take-away: our parameter-efficiency claim for FC-VQC \emph{is} conditional on a sufficiently expressive ansatz, while the QT/FQT claims are more ansatz-robust.
 
 %===================================================================
 \subsection{Statistical Significance Tests}
@@ -867,7 +871,7 @@ Noise experiments are conducted on one dataset (Boston Housing); broader noise s
 The five tabular datasets are small to moderate ($n \leq 20{,}640$) with low feature dimensionality (${\leq}$13); the MNIST 4 vs 9 task uses 11 PCA components and a $4{,}000$-sample subset, so neither end of our benchmark suite stresses high-dimensional or large-$n$ regimes.
 Larger, higher-dimensional datasets may favor different architectures.
 Our VQCs use at most 3 qubits per block; scaling to larger qubit counts could change the relative merits.
-The ansatz comparison is run only on ResNet-VQC and a single dataset (Boston); whether the Strong-vs-Basic gap persists across QT/FQT and other tasks is left to future work.
+The ansatz comparison is run on all four architectures but only on a single dataset (Boston Housing); whether the architecture-specific Strong-vs-Basic gap persists on larger or higher-dimensional datasets, and across other ansatz families (e.g., hardware-efficient ansatze with $R_y$+$R_z$ rotations), is left to future work.
 We note that the Boston Housing dataset contains an ethically problematic feature (the ``B'' variable encoding racial demographics); we use it solely as a small-sample regression benchmark for comparability with prior VQC studies, and our core conclusions are corroborated by the remaining five datasets (CA, Concrete, two Wine datasets, and MNIST 4 vs 9).
 Our two Wine classification benchmarks derive from the same UCI source, partially limiting the diversity of the classification evaluation; the MNIST 4 vs 9 addition mitigates but does not fully address this.
 
@@ -884,7 +888,7 @@ On the simpler binary MNIST task all four architectures cluster within 0.6\% mea
 All quantum models trail gradient-boosted trees on larger tabular datasets, suggesting that VQC's strength lies in parameter-efficient learning in the low-data regime most relevant to near-term hardware.
 
 Additional findings reinforce the practical value of simpler architectures: expressibility saturates at depth~${\approx}\,3$; FQT degrades gracefully under depolarizing noise (3-seed matched study) while QT collapses; gradient-variance tracking shows no architecture suffers a barren plateau, with FC-VQC having the largest gradient signal (${\sim}7\times$ that of QT).
-A swap from \texttt{StronglyEntanglingLayers} to the lighter \texttt{BasicEntanglerLayers} on ResNet-VQC drops $R^2$ by 0.18 with $3{\times}$ fewer parameters, indicating that our parameter-efficiency conclusions are conditioned on a sufficiently expressive entangling ansatz.
+A swap from \texttt{StronglyEntanglingLayers} to the lighter \texttt{BasicEntanglerLayers} ($3{\times}$ fewer parameters) is severe for FC-VQC ($\Delta R^2{=}0.49$, $p{=}0.037$ paired) but mild for ResNet-VQC, QT, and FQT ($\Delta R^2 \in [0.05, 0.14]$, all $p{>}0.2$): the FC-VQC parameter-efficiency claim is conditional on an expressive ansatz, whereas attention-based architectures are more ansatz-robust.
 
 For practitioners: default to FC-VQC with depth-3 blocks and the Strong ansatz, use ResNet-VQC for training stability, add LayerNorm to FQT for classification, and prefer FQT over QT on noisy hardware.
 Explicit quantum attention may become worthwhile on sequential or high-dimensional data where $T$ is large, the training set is sufficient to support the extra parameters, and data-dependent selection provides a clear advantage over fixed mixing---testing this hypothesis is a key direction for future work.
