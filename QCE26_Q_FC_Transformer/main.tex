@@ -76,7 +76,8 @@ Our key findings are:
 \textbf{(iv)}~LayerNorm on the fully quantum transformer improves classification accuracy, suggesting normalization is important when all operations are quantum;
 \textbf{(v)}~in our 3-seed noise study on Boston Housing, FQT remains stable under depolarizing noise up to $p_d{=}0.01$ while QT collapses; gradient-variance tracking shows none of the four architectures suffers a barren plateau, with FC-VQC exhibiting the largest median gradient signal (${\sim}7\times$ that of QT);
 \textbf{(vi)}~paired statistical tests across 5 datasets $\times$ 3 seeds find no significant pairwise architecture differences ($p{>}0.34$ for all five comparisons), reframing FC-VQC's appeal as a \emph{parameter-efficiency} rather than an accuracy claim;
-\textbf{(vii)}~replacing the \texttt{StronglyEntanglingLayers} ansatz with the lighter \texttt{BasicEntanglerLayers} on ResNet-VQC drops $R^2$ by 0.18 with $3{\times}$ fewer parameters, indicating that our parameter-efficiency conclusions assume a sufficiently expressive ansatz.
+\textbf{(vii)}~replacing the \texttt{StronglyEntanglingLayers} ansatz with the lighter \texttt{BasicEntanglerLayers} on ResNet-VQC drops $R^2$ by 0.18 with $3{\times}$ fewer parameters, indicating that our parameter-efficiency conclusions assume a sufficiently expressive ansatz;
+\textbf{(viii)}~zero-shot deployment of a noiseless-trained FC-VQC under IBM Eagle/Heron-calibrated depolarizing noise collapses test $R^2$ from $0.889$ to ${\approx}0$, motivating noise-aware training as the correct NISQ deployment recipe.
 All quantum-model results are validated across three random seeds.
 These findings provide practical architectural guidance for deploying VQCs on near-term quantum hardware.
 \end{abstract}
@@ -625,6 +626,24 @@ The headline observations:
 These numbers reinforce the parameter-efficiency narrative quantitatively: doubling the parameter count from FC-VQC to QT translates to ${\sim}1.8\times$ training cost while yielding statistically indistinguishable test accuracy across the pooled t-test (\cref{tab:ttest}). On NISQ hardware, the picture only worsens for QT, since each additional gate must execute on noisy physical qubits rather than a noiseless simulator.
 
 %===================================================================
+\subsection{Hardware-Emulation Demo}
+\label{sec:results-hwdemo}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/hw_demo.png}
+\vspace{-15pt}
+\caption{Zero-shot deployment of an FC-VQC trained on a noiseless simulator, evaluated on the Boston test set under depolarizing-channel emulation calibrated to IBM Eagle/Heron-class device error rates ($p_d{=}0.001$ for single-qubit gates, $p_d{=}0.005$ for two-qubit gates). (a)~Prediction--vs--ground-truth scatter; (b)~test $R^2$ collapses from $0.889$ (noiseless) to ${\sim}0$ at both noise levels. \emph{This is a noise-model emulation, not actual queue execution on IBM Quantum hardware}; it is included as a deployment-readiness sanity check.}
+\label{fig:hw-demo}
+\vspace{-10pt}
+\end{figure}
+
+To probe how a noiseless-trained FC-VQC transfers to near-term hardware, we evaluate the seed-42 Boston checkpoint under PennyLane's mixed-state simulator with depolarizing channels inserted after every \texttt{StronglyEntanglingLayers}, calibrated to the median 2-qubit ($p_d{\approx}5\times 10^{-3}$) and 1-qubit ($p_d{\approx}1\times 10^{-3}$) gate error rates of contemporary IBM Eagle/Heron-class devices.
+The result, shown in \cref{fig:hw-demo}, is unambiguous: \textbf{a noiseless-trained FC-VQC does not transfer zero-shot}---its test $R^2$ collapses from $0.889$ to approximately $0$ at both noise levels.
+This complements \cref{tab:noise} (which trains \emph{under} noise and finds robust performance for FQT): on NISQ hardware, noise-aware training rather than noiseless transfer is the deployment recipe.
+We emphasise that this is a calibrated noise-model emulation and not a real queue execution on IBM Quantum; an end-to-end transpilation and on-device benchmark is left to future work.
+
+%===================================================================
 \subsection{Ansatz Choice}
 \label{sec:results-ansatz}
 
@@ -842,7 +861,8 @@ This is a dataset limitation, not an architecture-specific weakness.
 \end{figure}
 
 \paragraph{Limitations}
-All experiments use quantum circuit simulation; behavior on real hardware may differ.
+All experiments use quantum circuit simulation, including the IBM Eagle/Heron-calibrated hardware-emulation demo in \cref{sec:results-hwdemo}; behavior on actual queue-executed circuits may differ due to time-correlated errors, T1/T2 decoherence, and crosstalk that our depolarizing-only model does not capture.
+A full transpiled, on-device benchmark is left to future work.
 Noise experiments are conducted on one dataset (Boston Housing); broader noise studies on additional datasets would help generalize the FQT-vs-QT robustness finding.
 The five tabular datasets are small to moderate ($n \leq 20{,}640$) with low feature dimensionality (${\leq}$13); the MNIST 4 vs 9 task uses 11 PCA components and a $4{,}000$-sample subset, so neither end of our benchmark suite stresses high-dimensional or large-$n$ regimes.
 Larger, higher-dimensional datasets may favor different architectures.
