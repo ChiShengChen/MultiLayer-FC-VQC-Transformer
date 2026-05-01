@@ -392,7 +392,7 @@ FQT & $.705{\scriptstyle\pm.078}$ & $.794{\scriptstyle\pm.007}$ & $.780{\scripts
 
 \begin{table}[t]
 \centering
-\caption{Test accuracy on classification datasets. All quantum-model and MLP-PM results: 3-seed mean $\pm$ std. Best overall mean per column in \textbf{bold}. \#p reported for the Wine R+W setting; MNIST counts (612/550/1078/658 for FC/ResNet/QT/FQT; 212 for MLP-PM) are similar. XGBoost on MNIST omitted: macOS library segfault not seen on Linux.}
+\caption{Test accuracy on classification datasets. All quantum-model, MLP-PM, and (where shown) XGBoost MNIST results: 3-seed mean $\pm$ std. Best overall mean per column in \textbf{bold}. \#p reported for the Wine R+W setting; MNIST counts (612/550/1078/658 for FC/ResNet/QT/FQT; 212 for MLP-PM) are similar. XGBoost on MNIST is run with \texttt{tree\_method='exact'} and a single worker thread to avoid an OpenMP segfault we observed on macOS with the default \texttt{hist} method.}
 \label{tab:main-classification}
 \small
 \begin{tabular}{lrrrr}
@@ -400,7 +400,7 @@ FQT & $.705{\scriptstyle\pm.078}$ & $.794{\scriptstyle\pm.007}$ & $.780{\scripts
 Model & Wine (Red) & Wine (R+W) & MNIST 4v9 & \#p \\
 \midrule
 CatBoost & $\mathbf{.678}{\scriptstyle\pm.017}$ & $.649{\scriptstyle\pm.012}$ & $\mathbf{.952}{\scriptstyle\pm.007}$ & ${\sim}$35K \\
-XGBoost & $.664{\scriptstyle\pm.019}$ & $\mathbf{.667}{\scriptstyle\pm.020}$ & --- & ${\sim}$95K \\
+XGBoost & $.664{\scriptstyle\pm.019}$ & $\mathbf{.667}{\scriptstyle\pm.020}$ & $.944{\scriptstyle\pm.006}$ & ${\sim}$95K \\
 \midrule
 MLP$_{\text{PM}}$ & $.614{\scriptstyle\pm.015}$ & $.557{\scriptstyle\pm.016}$ & $.943{\scriptstyle\pm.011}$ & 198--212 \\
 \midrule
