@@ -453,27 +453,29 @@ This MNIST result extends the central tabular-data finding to a structured-image
 
 \begin{table}[t]
 \centering
-\caption{Effect of attention heads $H$ (single seed). Test $R^2$ (regression) / accuracy (classification).}
+\caption{Effect of attention heads $H$. Boston column: 3-seed mean $\pm$ std; CA/Conc./Wine~R/Wine~R+W: single seed (seed=42). Test $R^2$ (regression) / accuracy (classification).}
 \label{tab:multihead}
 \small
 \begin{tabular}{llrrrrr}
 \toprule
 Model & $H$ & Boston & CA & Conc. & W-R & W-RW \\
 \midrule
-QT & 1 & .781 & .807 & .838 & .588 & .587 \\
-QT & 2 & .763 & .813 & \textbf{.869} & .596 & .604 \\
-QT & 3 & \textbf{.834} & \textbf{.814} & .837 & .604 & .595 \\
+QT & 1 & $.742{\scriptstyle\pm.087}$ & .807 & .838 & .588 & .587 \\
+QT & 2 & $.778{\scriptstyle\pm.040}$ & .813 & \textbf{.869} & .596 & .604 \\
+QT & 3 & $\mathbf{.791}{\scriptstyle\pm.044}$ & \textbf{.814} & .837 & .604 & .595 \\
 \midrule
-FQT & 1 & .799 & .786 & .792 & \textbf{.608} & .592 \\
-FQT & 2 & .626 & .811 & .797 & .583 & .581 \\
-FQT & 3 & .808 & .806 & .757 & .600 & .585 \\
+FQT & 1 & $.705{\scriptstyle\pm.096}$ & .786 & .792 & \textbf{.608} & .592 \\
+FQT & 2 & $.625{\scriptstyle\pm.044}$ & .811 & .797 & .583 & .581 \\
+FQT & 3 & $.663{\scriptstyle\pm.129}$ & .806 & .757 & .600 & .585 \\
 \bottomrule
 \end{tabular}
 \vspace{-10pt}
 \end{table}
 
-For QT, increasing $H$ yields mixed results: $H{=}3$ helps on Boston ($0.781 \!\to\! 0.834$) but not on Concrete ($0.838 \!\to\! 0.837$), while the parameter count triples.
-For FQT, multi-head attention is even less beneficial---$H{=}2$ \emph{degrades} Boston from $0.799$ to $0.626$.
+The 3-seed Boston column refines the picture relative to our earlier single-seed report.
+For QT, increasing $H$ yields a small but consistent improvement on Boston ($0.742\!\to\!0.778\!\to\!0.791$ at $H{=}1,2,3$, std ${\sim}.04$--$.09$), and a similar pattern on the single-seed CA Housing column; the gains are within or close to the cross-seed std and never significant at $n{=}3$ in our paired tests.
+For FQT, multi-head attention is \emph{actively harmful} on Boston in 3-seed mean ($0.705\!\to\!0.625\!\to\!0.663$ for $H{=}1,2,3$), with the $H{=}3$ runs especially unstable (std~$.129$).
+Across the four single-seed datasets, neither QT nor FQT shows a clear win for $H{>}1$: gains are typically below 0.02 $R^2$/accuracy, and several configurations (e.g.\ FQT-H3 on Concrete: $0.792\!\to\!0.757$) regress.
 The marginal gains from richer data-dependent mixing do not justify the $2{\times}$--$3{\times}$ parameter increase, especially when Type~4 FFN already provides partial cross-token mixing (\cref{sec:discussion}).
 
 \subsection{Architecture Ablation}
